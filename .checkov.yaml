@@ -1,0 +1,13 @@
+compact: true
+download-external-modules: false
+evaluate-variables: true
+framework:
+  - all
+quiet: true
+skip-download: true
+soft-fail: false
+skip-check:
+  - CKV2_AWS_51 # [F/P] Ensure AWS API Gateway endpoints uses client certificate authentication
+  - CKV_AWS_338 # TODO: Ensure CloudWatch log groups retains logs for at least 1 year
+  - CKV_AWS_272 # TODO: Ensure AWS Lambda function is configured to validate code-signing
+  - CKV_AWS_309 # [F/P] Ensure API GatewayV2 routes specify an authorization type

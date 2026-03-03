@@ -1,0 +1,72 @@
+# Docker Compose configuration for local development
+# For personal testing, create a docker-compose.override.yml with your actual AWS account IDs and OAuth client IDs
+
+services:
+  bedrock-gateway:
+    build: ./
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=local
+      - OTEL_SDK_DISABLED=true
+      - OTEL_SERVICE_NAME=bedrock-gateway
+      - SHARED_ACCOUNT_IDS=123456789012
+      - SHARED_ROLE_NAME=bedrock-gateway-shared-role
+      - AWS_REGION=us-east-1
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=DEBUG
+      - STS_ROLE_SESSION_NAME_SUFFIX=dev
+
+      - VALKEY_URL=redis://redis:6379
+      - RATE_LIMITING_ENABLED=true
+      - RATE_LIMIT_CONFIG={"permissions":{"default":{"models":{"anthropic.claude-3-haiku-20240307-v1:0":{"rpm":200,"tpm":5000},"us.anthropic.claude-sonnet-4-20250514-v1:0":{"rpm":200,"tpm":5000},"us.amazon.nova-lite-v1:0":{"rpm":200,"tpm":50000},"amazon.titan-embed-text-v1":{"rpm":200,"tpm":5000},"us.meta.llama3-3-70b-instruct-v1:0":{"rpm":200,"tpm":5000},"cohere.embed-english-v3":{"rpm":200,"tpm":5000}},"accounts":["123456789012"]},"YOUR_OAUTH_CLIENT_ID":{"name":"Example Client","models":{"anthropic.claude-3-haiku-20240307-v1:0":{"rpm":200,"tpm":5000},"us.anthropic.claude-sonnet-4-20250514-v1:0":{"rpm":200,"tpm":5000},"us.amazon.nova-lite-v1:0":{"rpm":200,"tpm":50000},"amazon.titan-embed-text-v1":{"rpm":200,"tpm":5000},"us.meta.llama3-3-70b-instruct-v1:0":{"rpm":200,"tpm":5000},"cohere.embed-english-v3":{"rpm":200,"tpm":5000}},"accounts":["123456789012"]}},"account_limits":{"123456789012":{"anthropic.claude-3-haiku-20240307-v1:0":{"rpm":200,"tpm":5000},"us.anthropic.claude-sonnet-4-20250514-v1:0":{"rpm":200,"tpm":5000},"us.amazon.nova-lite-v1:0":{"rpm":200,"tpm":50000},"amazon.titan-embed-text-v1":{"rpm":200,"tpm":5000},"us.meta.llama3-3-70b-instruct-v1:0":{"rpm":200,"tpm":5000},"cohere.embed-english-v3":{"rpm":200,"tpm":5000}}}}
+
+    volumes:
+      - ./:/app
+      - ./logs:/app/logs # Mount a logs directory
+      - ~/.aws:/root/.aws:ro # Mount AWS credentials (read-only)
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis:
+        condition: service_healthy
+    command:
+      [
+        "uvicorn",
+        "main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+        "--workers",
+        "1",
+      ]
+
+  redis:
+    image: redis:latest
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  redis_data:

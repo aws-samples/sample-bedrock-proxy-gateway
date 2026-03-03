@@ -1,0 +1,5 @@
+bucket       = "bedrock-proxy-gateway-terraform-state-central-us-east-1"
+key          = "bedrock-gateway/test/terraform.tfstate"
+region       = "us-east-1"
+use_lockfile = true
+encrypt      = true

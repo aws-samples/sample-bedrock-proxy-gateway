@@ -1,0 +1,6 @@
+FROM amazon/aws-otel-collector:latest AS aws-otel
+FROM otel/opentelemetry-collector-contrib:latest
+
+COPY --from=aws-otel /healthcheck /healthcheck
+
+HEALTHCHECK --interval=5s --timeout=6s --retries=5 CMD ["/healthcheck"]

@@ -1,0 +1,51 @@
+# Test Environment Rate Limit Configuration
+# Copy this file to test.local.yaml and update with your actual values for local testing
+
+permissions:
+  default:
+    models:
+      us.anthropic.claude-3-5-haiku-20241022-v1:0:
+        rpm: 100
+        tpm: 40000
+      us.anthropic.claude-sonnet-4-20250514-v1:0:
+        rpm: 100
+        tpm: 40000
+      us.amazon.nova-lite-v1:0:
+        rpm: 100
+        tpm: 40000
+      us.meta.llama3-3-70b-instruct-v1:0:
+        rpm: 100
+        tpm: 6000
+      mistral.mixtral-8x7b-instruct-v0:1:
+        rpm: 100
+        tpm: 3000
+    accounts:
+      - "123456789012"
+
+  # Example client configuration
+  YOUR_OAUTH_CLIENT_ID:
+    name: Test Client
+    models:
+      us.anthropic.claude-3-5-haiku-20241022-v1:0:
+        rpm: 50
+        tpm: 20000
+      us.amazon.nova-lite-v1:0:
+        rpm: 50
+        tpm: 20000
+    accounts:
+      - "123456789012"
+
+account_limits:
+  "123456789012":
+    us.anthropic.claude-3-5-haiku-20241022-v1:0:
+      rpm: 2000
+      tpm: 4000000
+    us.anthropic.claude-sonnet-4-20250514-v1:0:
+      rpm: 2000
+      tpm: 4000000
+    us.amazon.nova-lite-v1:0:
+      rpm: 250
+      tpm: 3000000
+    us.meta.llama3-3-70b-instruct-v1:0:
+      rpm: 200
+      tpm: 3000000

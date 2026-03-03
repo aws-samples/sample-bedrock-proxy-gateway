@@ -1,0 +1,24 @@
+content_filters:
+  - type: "SEXUAL"
+    input_strength: "LOW"
+    output_strength: "LOW"
+  - type: "VIOLENCE"
+    input_strength: "LOW"
+    output_strength: "LOW"
+  - type: "MISCONDUCT"
+    input_strength: "LOW"
+    output_strength: "LOW"
+  - type: "PROMPT_ATTACK"
+    input_strength: "HIGH"
+    output_strength: "NONE"
+
+contextual_grounding:
+  relevance_threshold: 0.7
+
+forbidden_words:
+  managed_lists:
+    - type: "PROFANITY"
+
+messages:
+  blocked_input: "Your input has been blocked as it contains prohibited content or information."
+  blocked_output: "The response has been blocked as it may contain sensitive or prohibited information."
