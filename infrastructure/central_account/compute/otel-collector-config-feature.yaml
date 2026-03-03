@@ -1,0 +1,78 @@
+extensions:
+  health_check:
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch/traces:
+    timeout: 1s
+    send_batch_size: 50
+  batch/metrics:
+    timeout: 60s
+    send_batch_size: 50
+  batch/logs:
+    timeout: 5s
+    send_batch_size: 100
+  resource:
+    attributes:
+      - key: service.name
+        value: "${ENVIRONMENT}-${SERVICE_NAME}"
+        action: upsert
+      - key: service.namespace
+        value: api
+        action: upsert
+      - key: deployment.environment
+        value: "${ENVIRONMENT}"
+        action: upsert
+
+exporters:
+  awsxray:
+    region: ${AWS_REGION}
+    aws_log_groups: ["${LOGS_GROUP}"]
+  awsemf:
+    region: ${AWS_REGION}
+    namespace: "${ENVIRONMENT}/${SERVICE_NAME}"
+    dimension_rollup_option: NoDimensionRollup
+    resource_to_telemetry_conversion:
+      enabled: true
+    metric_declarations:
+      - dimensions: [[service.name, service.namespace]]
+        metric_name_selectors:
+          - ".*"
+  awscloudwatchlogs:
+    region: ${AWS_REGION}
+    log_group_name: "${LOGS_GROUP}"
+    log_stream_name: "${ENVIRONMENT}-${SERVICE_NAME}-${APP_HASH}"
+    log_retention: ${LOG_RETENTION}
+    raw_log: false
+    sending_queue:
+      enabled: true
+      num_consumers: 2
+      queue_size: 1000
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 5m
+
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch/traces, resource]
+      exporters: [awsxray]
+    metrics:
+      receivers: [otlp]
+      processors: [batch/metrics, resource]
+      exporters: [awsemf]
+    logs:
+      receivers: [otlp]
+      processors: [resource, batch/logs]
+      exporters: [awscloudwatchlogs]
+
+  extensions: [health_check]

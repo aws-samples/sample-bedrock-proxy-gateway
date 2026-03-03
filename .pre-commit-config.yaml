@@ -1,0 +1,105 @@
+repos:
+  # Ruff for Python formatting and linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.6
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  # Standard file validation hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+        exclude: infrastructure/.terraform
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: check-json
+      - id: check-xml
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: detect-aws-credentials
+        args: [--allow-missing-credentials]
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: pretty-format-json
+        args: [--autofix, --no-sort-keys, --indent=4, --no-ensure-ascii]
+        exclude: >
+          (?x)
+          (
+              package.json |
+              package-lock.json
+          )
+      - id: trailing-whitespace
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.2
+    hooks:
+      - id: bandit
+        files: ^backend/.*\.py$
+        exclude: \.venv/
+
+  # Terraform hooks
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.104.0
+    hooks:
+      - id: terraform_docs
+        name: terraform docs
+        args:
+          - "--args=--lockfile=false"
+          - --args=--config=.terraform-docs.yaml
+          - --hook-config=--create-file-if-not-exist=true
+        files: ^infrastructure/.*\.tf$
+      - id: terraform_checkov
+        name: checkov
+        args:
+          - --args=--config-file .checkov.yaml
+          - --args=--skip-path .*/\.external_modules/.*
+          - "--args=--skip-path=.*/modules/.*"
+          - --hook-config=--parallelism-ci-cpu-cores=2
+        files: ^infrastructure/.*\.tf$
+      - id: terraform_fmt
+        name: terraform fmt
+        args:
+          - --args=-recursive
+        files: ^infrastructure/.*\.tf$
+      - id: terraform_validate
+        name: terraform validate
+        files: ^infrastructure/[^/]+\.tf$
+
+  # Keep only workspace-specific tools as local
+  - repo: local
+    hooks:
+      - id: terraform-docs-clean-cache
+        name: clean terraform-docs cache
+        entry: sh -c 'rm -rf ~/.terraform-docs-cache || true'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+      - id: pytest
+        name: pytest
+        entry: uv run pytest test/unit --cov=backend/app --cov-fail-under=80 --tb=short
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: validate-rate-limit-config
+        name: validate rate limit configuration syntax
+        entry: uv run python backend/app/core/rate_limit/validate_config.py
+        language: system
+        files: ^backend/app/core/rate_limit/config/.*\.(json|yaml|yml)$
+        exclude: ^backend/app/core/rate_limit/config/schema\.json$
+        pass_filenames: true
+      - id: quota-check
+        name: validate rate limit configuration quota values
+        entry: uv run python backend/app/core/rate_limit/usecase_quota_checker.py
+        language: system
+        pass_filenames: false
+        stages: [manual]

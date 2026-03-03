@@ -1,0 +1,4 @@
+bucket         = "bedrock-proxy-gateway-terraform-state-ACCOUNT_ID-REGION"
+key            = "bedrock-gateway/dev/terraform.tfstate"
+region         = "us-east-1"
+use_lockfile   = true

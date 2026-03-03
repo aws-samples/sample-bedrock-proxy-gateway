@@ -1,0 +1,64 @@
+# Development Environment Rate Limit Configuration
+# Copy this file to dev.local.yaml and update with your actual values for local testing
+
+permissions:
+  default:
+    models:
+      us.anthropic.claude-sonnet-4-20250514-v1:0:
+        rpm: 20
+        tpm: 40000
+      us.anthropic.claude-sonnet-4-5-20250929-v1:0:
+        rpm: 10
+        tpm: 20000
+      us.amazon.nova-lite-v1:0:
+        rpm: 25
+        tpm: 30000
+      us.meta.llama3-3-70b-instruct-v1:0:
+        rpm: 20
+        tpm: 30000
+      amazon.titan-embed-text-v1:
+        rpm: 20
+        tpm: 20000
+    accounts:
+      - "123456789012"
+
+  # Example client configuration
+  # Replace with your actual OAuth client ID from Auth0/OAuth provider
+  YOUR_OAUTH_CLIENT_ID:
+    name: Example Client
+    models:
+      us.anthropic.claude-sonnet-4-20250514-v1:0:
+        rpm: 10
+        tpm: 10000
+      us.anthropic.claude-sonnet-4-5-20250929-v1:0:
+        rpm: 15
+        tpm: 20000
+      us.amazon.nova-lite-v1:0:
+        rpm: 200
+        tpm: 20000
+      us.meta.llama3-3-70b-instruct-v1:0:
+        rpm: 200
+        tpm: 20000
+      amazon.titan-embed-text-v1:
+        rpm: 20
+        tpm: 2000
+    accounts:
+      - "123456789012"
+
+account_limits:
+  "123456789012":
+    us.anthropic.claude-sonnet-4-20250514-v1:0:
+      rpm: 2000
+      tpm: 4000000
+    us.anthropic.claude-sonnet-4-5-20250929-v1:0:
+      rpm: 1000
+      tpm: 2000000
+    us.amazon.nova-lite-v1:0:
+      rpm: 250
+      tpm: 3000000
+    us.meta.llama3-3-70b-instruct-v1:0:
+      rpm: 200
+      tpm: 3000000
+    amazon.titan-embed-text-v1:
+      rpm: 200
+      tpm: 2000000

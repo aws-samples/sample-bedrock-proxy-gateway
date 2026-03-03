@@ -1,0 +1,61 @@
+{
+    "models": {
+        "python": {
+            "inference": [
+                "us.anthropic.claude-sonnet-4-20250514-v1:0",
+                "us.amazon.nova-lite-v1:0",
+                "us.meta.llama3-3-70b-instruct-v1:0"
+            ],
+            "embedding": [
+                "amazon.titan-embed-text-v1",
+                "cohere.embed-english-v3"
+            ],
+            "multi_modal": [
+                "us.anthropic.claude-sonnet-4-20250514-v1:0",
+                "us.amazon.nova-lite-v1:0"
+            ],
+            "reasoning": [
+                "us.anthropic.claude-sonnet-4-20250514-v1:0"
+            ]
+        },
+        "java": {
+            "inference": [
+                "us.amazon.nova-lite-v1:0"
+            ],
+            "embedding": [
+                "amazon.titan-embed-text-v1"
+            ]
+        }
+    },
+    "model_capabilities": {
+        "image_vision": [
+            "us.anthropic.claude-sonnet-4-20250514-v1:0",
+            "us.amazon.nova-lite-v1:0"
+        ],
+        "prompt_caching": [
+            "us.amazon.nova-lite-v1:0"
+        ]
+    },
+    "environments": {
+        "local": {
+            "api_url": "http://localhost:8000",
+            "auth_url": "https://your-oauth-provider.com/oauth/token"
+        },
+        "dev": {
+            "api_url": "https://your-dev-gateway.com",
+            "auth_url": "https://your-oauth-provider.com/oauth/token"
+        },
+        "qa": {
+            "api_url": "https://your-qa-gateway.com",
+            "auth_url": "https://your-oauth-provider.com/oauth/token"
+        },
+        "preprod": {
+            "api_url": "https://your-preprod-gateway.com",
+            "auth_url": "https://your-oauth-provider.com/oauth/token"
+        },
+        "prod": {
+            "api_url": "https://your-prod-gateway.com",
+            "auth_url": "https://your-oauth-provider.com/oauth/token"
+        }
+    }
+}
