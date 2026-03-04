@@ -56,14 +56,14 @@ The test suite aims for 80% code coverage across all modules, focusing on:
 ### Quick Test Run
 
 ```bash
-cd /path/to/bedrock-proxy-gateway/test/unit
+cd /path/to/sample-bedrock-proxy-gateway/test/unit
 ./run_tests.sh
 ```
 
 ### Manual Test Execution
 
 ```bash
-cd /path/to/bedrock-proxy-gateway/backend/app
+cd /path/to/sample-bedrock-proxy-gateway/backend/app
 uv sync --extra test
 uv run pytest ../../test/unit/ --cov=. --cov-report=html --cov-fail-under=80
 ```

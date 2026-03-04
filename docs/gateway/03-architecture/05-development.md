@@ -14,8 +14,8 @@ Local development and contributing.
 ### Clone repository
 
 ```bash
-git clone https://github.com/aws-samples/bedrock-proxy-gateway.git
-cd bedrock-proxy-gateway
+git clone https://github.com/aws-samples/sample-bedrock-proxy-gateway.git
+cd sample-bedrock-proxy-gateway
 ```
 
 ### Install dependencies
@@ -143,7 +143,7 @@ uv run mypy backend/
 ## Project structure
 
 ```
-bedrock-proxy-gateway/
+sample-bedrock-proxy-gateway/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI application
