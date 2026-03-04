@@ -29,8 +29,8 @@ The gateway runs on [Amazon ECS](https://aws.amazon.com/ecs/) with [AWS Fargate]
 
 ```bash
 # Clone repository
-git clone https://github.com/aws-samples/bedrock-proxy-gateway.git
-cd bedrock-proxy-gateway
+git clone https://github.com/aws-samples/sample-bedrock-proxy-gateway.git
+cd sample-bedrock-proxy-gateway
 
 # Configure for your environment
 cd infrastructure
