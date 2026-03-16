@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Valkey connection service using valkey-glide with IAM authentication."""
 
 from urllib.parse import urlparse

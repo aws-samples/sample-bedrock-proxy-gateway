@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # IAM Role for OIDC Federation
 resource "aws_iam_role" "oauth_federation_role" {
   name = var.role_name

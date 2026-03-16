@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Bedrock model invocation logging configuration
 # Logs are written directly to the central account's CloudWatch Log Group
 # via cross-account resource policy

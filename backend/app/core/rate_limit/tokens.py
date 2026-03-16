@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Token counting utilities for rate limiting.
 
 This module provides token estimation and extraction for GenAI API rate limiting.
