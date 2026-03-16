@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # S3 bucket for observability data
 resource "aws_s3_bucket" "observability" {
   #checkov:skip=CKV2_AWS_62: "Event notifications not required for observability data bucket"

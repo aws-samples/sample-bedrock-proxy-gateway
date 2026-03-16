@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 resource "aws_iam_role" "ecs_execution_role" {
   name = local.ecs_execution_role_name
   assume_role_policy = jsonencode({

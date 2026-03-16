@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 resource "aws_bedrock_guardrail" "bedrock_guardrails" {
   for_each                  = toset(keys(local.guardrail_profiles))
   name                      = "${local.guardrail_prefix}-${each.value}-guardrails"

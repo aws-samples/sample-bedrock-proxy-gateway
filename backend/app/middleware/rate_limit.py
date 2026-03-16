@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """FastAPI middleware for GenAI API rate limiting with O(1) performance.
 
 This middleware implements comprehensive rate limiting for GenAI APIs with two key metrics:

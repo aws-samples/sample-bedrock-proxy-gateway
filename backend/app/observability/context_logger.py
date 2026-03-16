@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Context-aware logger wrapper
 
 This module provides a ContextLogger that automatically adds user context

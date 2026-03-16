@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Quota distribution and validation tool.
 
 This script processes quota YAML files for dev and test environments from

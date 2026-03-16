@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 resource "aws_elasticache_serverless_cache" "sts_cache" {
   engine             = "valkey"
   name               = local.cache_name

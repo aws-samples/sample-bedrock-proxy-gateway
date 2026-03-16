@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 resource "aws_kms_key" "val_key_kms_key" {
   description             = "Key to encrypt the valkey cache"
   enable_key_rotation     = true

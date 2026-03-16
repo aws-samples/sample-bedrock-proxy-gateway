@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 locals {
   name_prefix   = "${var.common.environment}-${var.common.app_id}"
   resource_name = "${local.name_prefix}-${var.common.service_name}"

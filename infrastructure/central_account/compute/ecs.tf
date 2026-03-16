@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 resource "aws_kms_key" "logs_key" {
   description             = local.kms_key_description
   deletion_window_in_days = 7

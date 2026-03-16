@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # This random string is generated one-time per deployment
 # and is passed into the shared_accout module to restrict
 # IAM role trust policy to allow AssumeRoleWWI calls only

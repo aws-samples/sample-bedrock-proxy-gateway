@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Async rate limiter using FixedWindow strategy.
 
 This module implements rate limiting for GenAI APIs with two key metrics:
