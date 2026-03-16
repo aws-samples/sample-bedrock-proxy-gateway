@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Rate limiting engine with O(1) performance.
 
 This module implements the business logic layer for rate limiting in GenAI APIs.

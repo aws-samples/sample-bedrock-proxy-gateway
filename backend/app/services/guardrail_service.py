@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Guardrail service for managing logical ID to actual ID mapping.
 
 This service provides O(1) guardrail configuration lookups using Redis caching

@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # KMS Key for Bedrock CloudWatch Logs
 resource "aws_kms_key" "bedrock_logs_key" {
   description             = "KMS key for Bedrock CloudWatch logs encryption"

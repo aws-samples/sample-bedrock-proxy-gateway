@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # IAM policy for accessing observability resources
 resource "aws_iam_policy" "observability_access" {
   name        = local.observability_access_policy_name
