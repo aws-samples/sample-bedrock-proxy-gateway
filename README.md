@@ -2,7 +2,7 @@
 
 An open-source sample implementation of an enterprise gateway for [Amazon Bedrock](https://aws.amazon.com/bedrock/) that demonstrates OAuth 2.0 (Open Authorization 2.0) authentication, rate limiting, multi-account routing, and comprehensive observability patterns.
 
-This code can serve as basis to make LLMs and guardrails accessible across large enterprises. In contrast to other code samples/solutions, the code addresses only this challenge in way that is modular, extensible (e.g. by 3rd party model providers) and easy to maintain.
+This code can serve as basis to make LLMs and guardrails accessible across large enterprises. In contrast to other code samples/solutions, the code addresses only this challenge in a way that is modular, extensible (e.g. by 3rd party model providers) and easy to maintain.
 
 **Note:** This is a sample implementation provided for educational and demonstration purposes. You should review, test, and customize this code for your specific requirements before deploying to any environment.
 
