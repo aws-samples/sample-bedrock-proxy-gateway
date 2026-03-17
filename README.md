@@ -80,4 +80,17 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 ## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+This library is licensed under the Apache 2.0 License. See the LICENSE file.
+
+## Authors
+
+The following authors have contributed this sample within AWS and prepared it for open-source release:
+- [Yuvaraj Kesavan](https://github.com/YuvarajKesavan)
+- [Rumeshkrishnan Mohan](https://github.com/rumeshkrish)
+- [Nicola D'Orazio](https://github.com/Njk00)
+- [Konstantin Zerebcov](https://github.com/kzerebcov)
+- [David Sauerwein](https://github.com/Antropath)
+
+Special thanks to [Olivier Brique](https://github.com/obriqaws) for his thorough review and suggestions that helped improve the solution.
+
+
