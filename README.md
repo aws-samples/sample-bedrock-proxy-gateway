@@ -23,13 +23,13 @@ The gateway runs on [Amazon ECS](https://aws.amazon.com/ecs/) with [AWS Fargate]
 
 ![Architecture Overview](docs/media/gateway-v2-overview.png)
 
-1. Requests are sent to an Application Load Balancer (ALB) fronted by a WAF in the central account using the Bedrock runtime API. Use cases can use the standard Bedrock API.
-2. The ALB routes to an Amazon ECS service implemented in FastAPI that processes the request.
-3. The quota of the use case and target accounts is checked in ElastiCache.
-4. Check if STS credentials for the use case are cached in ElastiCache to make Bedrock calls in the target accounts by assuming a role with web identity.
-5. If credentials are not cached, refresh them by calling the Identity Provider (steps 5–7).
-6. Check if the use case has included pre-defined Guardrails in the request and include the ID of the corresponding Guardrail in the target account (see the Guardrails section for details).
-7. Forward the Bedrock request with the correct Guardrail ID to one of the target accounts based on available quota.
+- Step 1: Requests are sent to an Application Load Balancer (ALB) fronted by a WAF in the central account using the Bedrock runtime API. Use cases can use the standard Bedrock API.
+- Step 2: The ALB routes to an Amazon ECS service implemented in FastAPI that processes the request.
+- Step 3: The quota of the use case and target accounts is checked in ElastiCache.
+- Step 4: Check if STS credentials for the use case are cached in ElastiCache to make Bedrock calls in the target accounts by assuming a role with web identity.
+- Step 5 to 7: If credentials are not cached, refresh them by calling the Identity Provider (steps 5–7).
+- Step 8: Check if the use case has included pre-defined Guardrails in the request and include the ID of the corresponding Guardrail in the target account (see the Guardrails section for details).
+- Step 9: Forward the Bedrock request with the correct Guardrail ID to one of the target accounts based on available quota.
 
 ## Quick start
 
