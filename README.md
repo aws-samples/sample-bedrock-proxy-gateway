@@ -80,4 +80,16 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 ## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+This library is licensed under the Apache 2.0 License. See the LICENSE file.
+
+## Authors
+
+[Yuvaraj Kesavan](https://github.com/YuvarajKesavan)
+Rumeshkrishnan Mohan
+[Nicola D'Orazio](https://github.com/Njk00)
+Konstantin Zerebcov
+[David Sauerwein](https://github.com/Antropath)
+
+Special thanks to [Olivier Brique](https://github.com/obriqaws) for his thorough review and suggestions that helped improve the solution.
+
+
