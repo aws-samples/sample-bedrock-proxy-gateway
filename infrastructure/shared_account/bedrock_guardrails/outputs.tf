@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 output "bedrock_logging_role_arn" {
   description = "ARN of the Bedrock logging role"
   value       = aws_iam_role.bedrock_logging_role.arn

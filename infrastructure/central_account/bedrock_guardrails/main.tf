@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # SSM Parameter to store consolidated guardrail configuration for ECS
 resource "aws_ssm_parameter" "guardrail_config" {
   name        = "/${var.common.environment}/guardrails/config"

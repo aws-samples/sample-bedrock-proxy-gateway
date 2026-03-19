@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for routes.health module."""
 
 import json
@@ -16,7 +19,7 @@ class TestHealthRoute:
     async def test_health_endpoint_success(self, mock_config):
         """Test successful health check response."""
         mock_config.environment = "test"
-        mock_config.otel_service_name = "bedrock-gateway"
+        mock_config.otel_service_name = "bedrock-proxy-gateway"
 
         response = await health()
 
@@ -28,7 +31,7 @@ class TestHealthRoute:
         content = json.loads(response.body)
         assert content["status"] == "healthy"
         assert content["env"] == "test"
-        assert content["service"] == "bedrock-gateway"
+        assert content["service"] == "bedrock-proxy-gateway"
 
     @pytest.mark.asyncio
     @patch("routes.health.config")
@@ -69,13 +72,13 @@ class TestHealthRoute:
     async def test_health_endpoint_production_env(self, mock_config):
         """Test health check in production environment."""
         mock_config.environment = "prod"
-        mock_config.otel_service_name = "bedrock-gateway-prod"
+        mock_config.otel_service_name = "bedrock-proxy-gateway-prod"
 
         response = await health()
 
         content = json.loads(response.body)
         assert content["env"] == "prod"
-        assert content["service"] == "bedrock-gateway-prod"
+        assert content["service"] == "bedrock-proxy-gateway-prod"
 
     @pytest.mark.asyncio
     async def test_health_endpoint_response_format(self):

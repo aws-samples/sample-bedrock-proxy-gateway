@@ -158,7 +158,7 @@ sample-bedrock-proxy-gateway/
 │   ├── shared_account/          # Shared account resources
 │   └── workspaces/              # Environment configs
 ├── scripts/
-│   ├── setup.sh                 # Backend setup
+│   ├── setup.sh                 # Environment setup (tools, S3, ECR, Docker)
 │   ├── deploy.sh                # Deploy script
 │   └── destroy.sh               # Cleanup script
 ├── test/
@@ -282,9 +282,9 @@ Use ECS Exec to access running container:
 
 ```bash
 aws ecs execute-command \
-  --cluster bedrock-gateway-dev \
+  --cluster bedrock-proxy-gateway-dev \
   --task <task-id> \
-  --container bedrock-gateway \
+  --container bedrock-proxy-gateway \
   --interactive \
   --command "/bin/bash"
 ```
@@ -296,7 +296,7 @@ aws ecs execute-command \
 docker compose logs -f gateway
 
 # ECS
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow
 ```
 
 ## Contributing

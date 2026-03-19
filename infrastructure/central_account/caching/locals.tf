@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 locals {
   # Construct the base name prefix using environment and AppId
   name_prefix = "${var.common.app_id}-${var.common.environment}"

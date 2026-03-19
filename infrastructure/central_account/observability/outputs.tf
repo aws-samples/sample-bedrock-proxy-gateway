@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 output "s3_bucket_name" {
   description = "Name of the observability S3 bucket"
   value       = aws_s3_bucket.observability.bucket

@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 locals {
   # Guardrail naming with v2 suffix to avoid conflicts with v1 guardrails
   guardrail_prefix = "${var.common.environment}-v2"

@@ -309,7 +309,7 @@ Store sensitive configuration in Secrets Manager:
 ```bash
 # Create secret
 aws secretsmanager create-secret \
-  --name bedrock-gateway/dev/config \
+  --name bedrock-proxy-gateway/dev/config \
   --secret-string '{
     "oauth_client_secret": "xxx",
     "api_keys": ["key1", "key2"]
@@ -322,7 +322,7 @@ Reference in ECS task definition:
 secrets = [
   {
     name      = "OAUTH_CLIENT_SECRET"
-    valueFrom = "arn:aws:secretsmanager:us-east-1:123456789012:secret:bedrock-gateway/dev/config:oauth_client_secret::"
+    valueFrom = "arn:aws:secretsmanager:us-east-1:123456789012:secret:bedrock-proxy-gateway/dev/config:oauth_client_secret::"
   }
 ]
 ```
@@ -355,7 +355,7 @@ Adjust task CPU and memory based on actual usage:
 aws cloudwatch get-metric-statistics \
   --namespace AWS/ECS \
   --metric-name CPUUtilization \
-  --dimensions Name=ServiceName,Value=bedrock-gateway-service \
+  --dimensions Name=ServiceName,Value=bedrock-proxy-gateway-service \
   --start-time $(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%S) \
   --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
   --period 3600 \
@@ -405,11 +405,11 @@ Set up SNS notifications for GuardDuty findings:
 
 ```bash
 # Create SNS topic for security alerts
-aws sns create-topic --name bedrock-gateway-security-alerts
+aws sns create-topic --name bedrock-proxy-gateway-security-alerts
 
 # Subscribe your security team
 aws sns subscribe \
-  --topic-arn arn:aws:sns:us-east-1:123456789012:bedrock-gateway-security-alerts \
+  --topic-arn arn:aws:sns:us-east-1:123456789012:bedrock-proxy-gateway-security-alerts \
   --protocol email \
   --notification-endpoint security-team@example.com
 
@@ -429,7 +429,7 @@ aws events put-rule \
 # Add SNS as target
 aws events put-targets \
   --rule guardduty-ecs-findings \
-  --targets "Id"="1","Arn"="arn:aws:sns:us-east-1:123456789012:bedrock-gateway-security-alerts"
+  --targets "Id"="1","Arn"="arn:aws:sns:us-east-1:123456789012:bedrock-proxy-gateway-security-alerts"
 ```
 
 #### Monitor for specific threats
@@ -628,7 +628,7 @@ terraform apply -target=module.shared_account.module.bedrock_guardrails
 1. Associate the guardrail with your use case in the rate limiting configuration:
 
 ```yaml
-# backend/app/core/rate_limit/config/prod.yaml
+# backend/app/core/rate_limit/config/dev.yaml
 permissions:
   customer-support:
     name: "Customer Support"

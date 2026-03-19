@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Load-test Bedrock converse API with Locust.
 
 Usage:
@@ -31,9 +34,9 @@ ENVIRONMENT_CONFIG = {
         "prod": "https://prod-alb.example.net",
     },
     "ecs": {
-        "dev": "ecs-np-app1234-dev-bedrock-gateway",
-        "test": "ecs-np-app1234-test-bedrock-gateway",
-        "prod": "ecs-app1234-prod-bedrock-gateway",
+        "dev": "ecs-np-app1234-dev-bedrock-proxy-gateway",
+        "test": "ecs-np-app1234-test-bedrock-proxy-gateway",
+        "prod": "ecs-app1234-prod-bedrock-proxy-gateway",
     },
 }
 ENVIRONMENT = "dev"

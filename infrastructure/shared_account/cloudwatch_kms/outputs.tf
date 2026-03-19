@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 output "kms_key_arn" {
   description = "ARN of the KMS key"
   value       = aws_kms_key.bedrock_logs_key.arn

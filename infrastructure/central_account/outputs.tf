@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 output "ecs_alb_dns_name" {
   description = "DNS name of the ECS ALB"
   value       = module.networking.ecs_alb_dns_name

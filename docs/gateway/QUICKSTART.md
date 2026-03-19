@@ -31,6 +31,7 @@ Example `dev.local.tfvars`:
 
 ```hcl
 environment = "dev"
+app_id      = "myapp"
 
 # OAuth (required)
 oauth_jwks_url = "https://<tenant>.auth0.com/.well-known/jwks.json"
@@ -76,6 +77,7 @@ account_limits:
 ### 4. Deploy
 
 ```bash
+cd ..
 ./scripts/deploy.sh dev --apply
 ```
 

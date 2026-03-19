@@ -249,7 +249,7 @@ The IAM role has permissions to invoke Amazon Bedrock:
 The gateway logs which account handled each request:
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow --filter-pattern "account_id"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "account_id"
 ```
 
 ### View account distribution
@@ -272,7 +272,7 @@ aws cloudwatch get-metric-statistics \
 Track how much of each account's quota is being used:
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow --filter-pattern "quota_utilization"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "quota_utilization"
 ```
 
 ## Test multi-account routing
@@ -293,7 +293,7 @@ for i in {1..10}; do
 done
 
 # Check logs to see which accounts were used
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow --filter-pattern "account_id"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "account_id"
 ```
 
 You should see requests distributed across your configured accounts.
