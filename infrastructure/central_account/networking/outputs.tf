@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 output "vpc_id" {
   description = "ID of the created VPC"
   value       = aws_vpc.main.id

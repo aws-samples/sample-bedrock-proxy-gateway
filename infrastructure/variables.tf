@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # =============================================================================
 # CORE APPLICATION VARIABLES
 # =============================================================================
@@ -11,7 +14,7 @@ variable "app_id" {
 variable "service_name" {
   description = "Name of the service"
   type        = string
-  default     = "bedrock-gateway"
+  default     = "bedrock-proxy-gateway"
 }
 
 variable "environment" {

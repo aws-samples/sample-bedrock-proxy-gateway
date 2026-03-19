@@ -61,7 +61,7 @@ class Config:
 
         # Observability Configuration
         self.otel_sdk_disabled = os.getenv("OTEL_SDK_DISABLED", "false").lower() == "true"
-        self.otel_service_name = os.getenv("OTEL_SERVICE_NAME", "bedrock-gateway")
+        self.otel_service_name = os.getenv("OTEL_SERVICE_NAME", "bedrock-proxy-gateway")
         self.otel_exporter_otlp_endpoint = os.getenv(
             "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"
         )

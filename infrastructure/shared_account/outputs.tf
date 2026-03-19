@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # OIDC Federation Outputs
 output "oidc_provider_arn" {
   description = "ARN of the OIDC provider"

@@ -45,8 +45,8 @@ fi
 # Configuration
 TFVARS_FILE="${ENVIRONMENT}.tfvars"
 LOCAL_TFVARS_FILE="${ENVIRONMENT}.local.tfvars"
-BACKEND_FILE="backend-${ENVIRONMENT}.tfbackend"
-LOCAL_BACKEND_FILE="backend-${ENVIRONMENT}.local.tfbackend"
+BACKEND_FILE="central-${ENVIRONMENT}.tfbackend"
+LOCAL_BACKEND_FILE="central-${ENVIRONMENT}.local.tfbackend"
 
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 export AWS_REGION=us-east-1
@@ -109,17 +109,8 @@ elif [ ! -f "$TFVARS_FILE" ]; then
     exit 1
 fi
 
-# Check if backend file exists (prefer .local version)
-if [ -f "$LOCAL_BACKEND_FILE" ]; then
-    BACKEND_FILE="$LOCAL_BACKEND_FILE"
-    echo "✓ Using local backend config: $BACKEND_FILE"
-elif [ ! -f "$BACKEND_FILE" ]; then
-    echo "❌ Error: Neither $LOCAL_BACKEND_FILE nor $BACKEND_FILE found"
-    exit 1
-fi
-
 echo "🔧 Executing setup.sh..."
-if AWS_PROFILE="$CENTRAL_PROFILE" ./setup.sh $ENVIRONMENT central > setup_output.log 2>&1; then
+if AWS_PROFILE="$CENTRAL_PROFILE" ../scripts/setup.sh $ENVIRONMENT "$CENTRAL_PROFILE" > setup_output.log 2>&1; then
     echo "✅ Setup.sh completed successfully"
 else
     echo "❌ Setup.sh failed with exit code $?"
@@ -137,6 +128,17 @@ fi
 echo "📊 Extracting IMAGE_TAG..."
 IMAGE_TAG=$(tail -n 1 setup_output.log)
 echo "IMAGE_TAG ==> $IMAGE_TAG"
+
+# Check if backend file exists (prefer .local version, created by setup.sh)
+if [ -f "$LOCAL_BACKEND_FILE" ]; then
+    BACKEND_FILE="$LOCAL_BACKEND_FILE"
+    echo "✓ Using local backend config: $BACKEND_FILE"
+elif [ -f "$BACKEND_FILE" ]; then
+    echo "✓ Using backend config: $BACKEND_FILE"
+else
+    echo "❌ Error: Neither $LOCAL_BACKEND_FILE nor $BACKEND_FILE found. Did setup.sh succeed?"
+    exit 1
+fi
 
 # Initialize Terraform
 echo "🔧 Initializing Terraform..."
@@ -181,7 +183,7 @@ done
 if [ "$APPLY_FLAG" = true ]; then
     echo ""
     echo "🔍 Checking consolidated guardrail configuration..."
-    SSM_PARAM_NAME="bedrock-gateway/$ENVIRONMENT/guardrails/consolidated-config"
+    SSM_PARAM_NAME="bedrock-proxy-gateway/$ENVIRONMENT/guardrails/consolidated-config"
 
     if aws ssm get-parameter --name "/$SSM_PARAM_NAME" --profile "$CENTRAL_PROFILE" --query 'Parameter.Value' --output text 2>/dev/null >/dev/null; then
         echo "📋 Consolidated Guardrails:"

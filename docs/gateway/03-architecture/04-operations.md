@@ -43,7 +43,7 @@ Create dashboards for operational visibility:
 aws cloudwatch get-metric-statistics \
   --namespace AWS/ECS \
   --metric-name CPUUtilization \
-  --dimensions Name=ServiceName,Value=bedrock-gateway-service \
+  --dimensions Name=ServiceName,Value=bedrock-proxy-gateway-service \
   --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
   --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
   --period 300 \
@@ -58,7 +58,7 @@ Set up alarms for critical issues:
 
 ```bash
 aws cloudwatch put-metric-alarm \
-  --alarm-name bedrock-gateway-high-errors \
+  --alarm-name bedrock-proxy-gateway-high-errors \
   --metric-name 5XXError \
   --namespace AWS/ApplicationELB \
   --statistic Sum \
@@ -72,7 +72,7 @@ aws cloudwatch put-metric-alarm \
 
 ```bash
 aws cloudwatch put-metric-alarm \
-  --alarm-name bedrock-gateway-high-cpu \
+  --alarm-name bedrock-proxy-gateway-high-cpu \
   --metric-name CPUUtilization \
   --namespace AWS/ECS \
   --statistic Average \
@@ -99,13 +99,13 @@ View traces in X-Ray console or query with AWS CLI.
 
 ```bash
 # Tail logs
-aws logs tail /aws/ecs/bedrock-gateway-prod --follow
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow
 
 # Filter errors
-aws logs tail /aws/ecs/bedrock-gateway-prod --follow --filter-pattern "ERROR"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "ERROR"
 
 # Search for specific client
-aws logs tail /aws/ecs/bedrock-gateway-prod --follow --filter-pattern "client_id=xxx"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "client_id=xxx"
 ```
 
 **ALB access logs:**
@@ -157,8 +157,8 @@ Adjust desired task count:
 
 ```bash
 aws ecs update-service \
-  --cluster bedrock-gateway-prod \
-  --service bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --service bedrock-proxy-gateway-service \
   --desired-count 10
 ```
 
@@ -202,13 +202,13 @@ Deploy new application version:
 ```bash
 # Build and push image
 cd backend
-docker build -t bedrock-gateway:v2.0.0 .
-docker push <ecr-repo>/bedrock-gateway:v2.0.0
+docker build -t bedrock-proxy-gateway:v2.0.0 .
+docker push <ecr-repo>/bedrock-proxy-gateway:v2.0.0
 
 # Update ECS service
 aws ecs update-service \
-  --cluster bedrock-gateway-prod \
-  --service bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --service bedrock-proxy-gateway-service \
   --force-new-deployment
 ```
 
@@ -234,16 +234,16 @@ Update rate limit configuration:
 
 ```bash
 # Edit configuration
-vim backend/app/core/rate_limit/config/prod.yaml
+vim backend/app/core/rate_limit/config/dev.yaml
 
 # Rebuild and deploy
-docker build -t bedrock-gateway:latest .
-docker push <ecr-repo>/bedrock-gateway:latest
+docker build -t bedrock-proxy-gateway:latest .
+docker push <ecr-repo>/bedrock-proxy-gateway:latest
 
 # Force deployment
 aws ecs update-service \
-  --cluster bedrock-gateway-prod \
-  --service bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --service bedrock-proxy-gateway-service \
   --force-new-deployment
 ```
 
@@ -254,13 +254,13 @@ Rotate OAuth credentials:
 ```bash
 # Update secret in Secrets Manager
 aws secretsmanager update-secret \
-  --secret-id bedrock-gateway/dev/oauth \
+  --secret-id bedrock-proxy-gateway/dev/oauth \
   --secret-string '{"client_id":"new-id","client_secret":"new-secret"}'
 
 # Restart tasks to pick up new credentials
 aws ecs update-service \
-  --cluster bedrock-gateway-prod \
-  --service bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --service bedrock-proxy-gateway-service \
   --force-new-deployment
 ```
 
@@ -273,11 +273,11 @@ Stored in S3 with versioning enabled. Restore previous version if needed:
 ```bash
 aws s3api list-object-versions \
   --bucket terraform-state-bucket \
-  --prefix bedrock-gateway/
+  --prefix bedrock-proxy-gateway/
 
 aws s3api get-object \
   --bucket terraform-state-bucket \
-  --key bedrock-gateway/terraform.tfstate \
+  --key bedrock-proxy-gateway/terraform.tfstate \
   --version-id <version-id> \
   terraform.tfstate
 ```
@@ -339,7 +339,7 @@ cloudwatch_log_retention_days = 7  # Down from 14
 Monitor token usage per client:
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-prod --follow --filter-pattern "usage"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "usage"
 ```
 
 Identify high-usage clients for cost allocation.

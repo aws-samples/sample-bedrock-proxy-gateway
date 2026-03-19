@@ -8,7 +8,6 @@ This code can serve as basis to make LLMs and guardrails accessible across large
 
 To understand how this code could be integrated in an enterprise to accelerate GenAI adoption, please review this [blog post](https://aws.amazon.com/blogs/industries/how-to-build-an-enterprise-scale-genai-gateway/).
 
-
 ## What does this provide?
 
 This sample demonstrates how to build a secure gateway for Amazon Bedrock with:
@@ -21,6 +20,12 @@ This sample demonstrates how to build a secure gateway for Amazon Bedrock with:
 - **Observability** - CloudWatch metrics, X-Ray tracing, and structured logging
 
 ## Architecture
+
+```
+Client → ALB → ECS (Fargate) → Valkey → Amazon Bedrock
+                ↓
+         CloudWatch + X-Ray
+```
 
 The gateway runs on [Amazon ECS](https://aws.amazon.com/ecs/) with [AWS Fargate](https://aws.amazon.com/fargate/) and uses [Application Load Balancer](https://aws.amazon.com/elasticloadbalancing/application-load-balancer/) for traffic distribution.
 
@@ -44,11 +49,14 @@ cd sample-bedrock-proxy-gateway
 # Configure for your environment
 cd infrastructure
 cp dev.tfvars dev.local.tfvars
-# Edit dev.local.tfvars with your OAuth provider and AWS account details
+# Edit dev.local.tfvars with your app_id, OAuth provider, and AWS account details
 
 # Deploy
 cd ..
 ./scripts/deploy.sh dev --apply
+
+# Destroy
+./scripts/destroy.sh dev --confirm
 ```
 
 **Prerequisites:** AWS account, Terraform 1.5+, AWS CLI v2, OAuth 2.0 provider
@@ -94,6 +102,7 @@ This library is licensed under the Apache 2.0 License. See the LICENSE file.
 ## Authors
 
 The following authors have contributed this sample within AWS and prepared it for open-source release:
+
 - [Yuvaraj Kesavan](https://github.com/YuvarajKesavan)
 - [Rumeshkrishnan Mohan](https://github.com/rumeshkrish)
 - [Nicola D'Orazio](https://github.com/Njk00)
@@ -101,5 +110,3 @@ The following authors have contributed this sample within AWS and prepared it fo
 - [David Sauerwein](https://github.com/Antropath)
 
 Special thanks to [Olivier Brique](https://github.com/obriqaws) for his thorough review and suggestions that helped improve the solution.
-
-

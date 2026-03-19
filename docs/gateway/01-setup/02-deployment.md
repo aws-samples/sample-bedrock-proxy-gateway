@@ -21,10 +21,12 @@ Run the setup script:
 This script creates:
 
 - [Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/) bucket for Terraform state
-- [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) table for state locking
-- Backend configuration files in `infrastructure/backend/`
+- ECR repositories for the gateway and OTel collector images
+- Backend configuration files in `infrastructure/`
 
-The script automatically uses your AWS account ID and region to create uniquely named resources.
+The script automatically uses your AWS account ID, region, and `app_id` from your tfvars file to create uniquely named resources.
+
+**Note:** The deploy script runs setup.sh automatically. You only need to run setup.sh directly for initial setup or troubleshooting.
 
 ## Step 2: Configure Terraform variables
 
@@ -42,6 +44,7 @@ cp dev.tfvars dev.local.tfvars
 ```hcl
 # Environment
 environment = "dev"
+app_id      = "myapp"
 
 # OAuth Configuration (required)
 oauth_jwks_url = "https://<your-provider>/.well-known/jwks.json"
@@ -162,9 +165,9 @@ graph TB
 After deployment completes, Terraform displays important outputs:
 
 ```
-alb_dns_name = "bedrock-gateway-dev-123456789.us-east-1.elb.amazonaws.com"
-ecs_cluster_name = "bedrock-gateway-dev"
-valkey_endpoint = "bedrock-gateway-dev.abc123.serverless.use1.cache.amazonaws.com:6379"
+alb_dns_name = "bedrock-proxy-gateway-dev-123456789.us-east-1.elb.amazonaws.com"
+ecs_cluster_name = "bedrock-proxy-gateway-dev"
+valkey_endpoint = "bedrock-proxy-gateway-dev.abc123.serverless.use1.cache.amazonaws.com:6379"
 ```
 
 Save the `alb_dns_name` value—you'll use it to make requests.
@@ -197,8 +200,8 @@ Verify ECS tasks are running:
 
 ```bash
 aws ecs describe-services \
-  --cluster bedrock-gateway-dev \
-  --services bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --services bedrock-proxy-gateway-service \
   --query 'services[0].runningCount'
 ```
 
@@ -209,7 +212,7 @@ You should see at least 1 running task.
 Check application logs:
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow
 ```
 
 You should see startup logs indicating the application is ready.
@@ -236,7 +239,7 @@ You can store credentials in [AWS Secrets Manager](https://aws.amazon.com/secret
 
 ```bash
 aws secretsmanager create-secret \
-  --name bedrock-gateway-dev-oauth-credentials \
+  --name bedrock-proxy-gateway-dev-oauth-credentials \
   --secret-string '{
     "client_id": "<CLIENT_ID>",
     "client_secret": "<CLIENT_SECRET>",
@@ -382,17 +385,17 @@ aws ecr get-login-password --region us-east-1 | \
 
 # Build and push
 cd backend
-docker build -t bedrock-gateway:latest .
-docker tag bedrock-gateway:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/bedrock-gateway:latest
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/bedrock-gateway:latest
+docker build -t bedrock-proxy-gateway:latest .
+docker tag bedrock-proxy-gateway:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/bedrock-proxy-gateway:latest
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/bedrock-proxy-gateway:latest
 ```
 
 1. Force ECS to deploy the new image:
 
 ```bash
 aws ecs update-service \
-  --cluster bedrock-gateway-dev \
-  --service bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --service bedrock-proxy-gateway-service \
   --force-new-deployment
 ```
 
@@ -454,7 +457,7 @@ For detailed troubleshooting, refer to [TROUBLESHOOTING.md](../TROUBLESHOOTING.m
 Check ECS task logs:
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow
 ```
 
 Common causes:

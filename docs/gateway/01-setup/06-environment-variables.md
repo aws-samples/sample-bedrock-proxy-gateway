@@ -12,12 +12,12 @@ Deployment environment identifier.
 
 - **Required:** No
 - **Default:** `dev`
-- **Values:** `dev`, `test`, `prod`
+- **Values:** `dev`, `test`
 
-Determines which rate limit configuration file to load (`base.yaml`, `test.yaml`, or `prod.yaml`).
+Determines which rate limit configuration file to load (`base.yaml` or `test.yaml`).
 
 ```bash
-ENVIRONMENT=prod
+ENVIRONMENT=dev
 ```
 
 ### AWS_REGION
@@ -89,7 +89,7 @@ Expected JWT audience claim.
 Must match the `aud` claim in your JWT tokens.
 
 ```bash
-JWT_AUDIENCE=bedrock-gateway-prod
+JWT_AUDIENCE=bedrock-proxy-gateway-dev
 ```
 
 ### JWT_ALLOWED_SCOPES
@@ -187,7 +187,7 @@ The gateway connects to Valkey to store rate limit state.
 
 ```bash
 # Production (SSL enabled automatically)
-VALKEY_URL=async+rediss://master.valkey.abc123.serverless.use1.cache.amazonaws.com:6379
+VALKEY_URL=rediss://valkey.abc123.serverless.use1.cache.amazonaws.com:6379
 
 # Local development
 VALKEY_URL=redis://localhost:6379
@@ -233,7 +233,7 @@ ELASTICACHE_USERNAME=default
 Enable rate limiting.
 
 - **Required:** No
-- **Default:** `false` for dev, `true` for test/prod
+- **Default:** `false` for dev, `true` for test
 
 When disabled, all requests bypass rate limit checks.
 
@@ -248,12 +248,12 @@ RATE_LIMITING_ENABLED=true
 Service name for OpenTelemetry.
 
 - **Required:** No
-- **Default:** `bedrock-gateway`
+- **Default:** `bedrock-proxy-gateway`
 
 Identifies the service in traces and metrics.
 
 ```bash
-OTEL_SERVICE_NAME=bedrock-gateway-prod
+OTEL_SERVICE_NAME=bedrock-proxy-gateway-dev
 ```
 
 ### OTEL_EXPORTER_OTLP_ENDPOINT
@@ -296,7 +296,7 @@ OTEL_SDK_DISABLED=false
 # OAuth
 OAUTH_JWKS_URL=https://<tenant>.us.auth0.com/.well-known/jwks.json
 OAUTH_ISSUER=https://<tenant>.us.auth0.com/
-JWT_AUDIENCE=bedrock-gateway-dev
+JWT_AUDIENCE=bedrock-proxy-gateway-dev
 
 # Multi-account
 SHARED_ACCOUNT_IDS=123456789012
@@ -308,13 +308,13 @@ BEDROCK_RUNTIME_VPC_ENDPOINT_DNS=vpce-xxx.bedrock-runtime.us-east-1.vpce.amazona
 STS_VPC_ENDPOINT_DNS=vpce-yyy.sts.us-east-1.vpce.amazonaws.com
 
 # Valkey
-VALKEY_URL=async+rediss://master.dev-valkey.abc123.serverless.use1.cache.amazonaws.com:6379
+VALKEY_URL=rediss://dev-valkey.abc123.serverless.use1.cache.amazonaws.com:6379
 ```
 
 ### Production
 
 ```bash
-ENVIRONMENT=prod
+ENVIRONMENT=dev
 AWS_REGION=us-east-1
 LOG_LEVEL=INFO
 RATE_LIMITING_ENABLED=true
@@ -323,7 +323,7 @@ OTEL_SDK_DISABLED=false
 # OAuth
 OAUTH_JWKS_URL=https://auth.example.com/.well-known/jwks.json
 OAUTH_ISSUER=https://auth.example.com/
-JWT_AUDIENCE=bedrock-gateway-prod
+JWT_AUDIENCE=bedrock-proxy-gateway-dev
 JWT_ALLOWED_SCOPES=bedrockproxygateway:invoke
 
 # Multi-account
@@ -336,10 +336,10 @@ BEDROCK_RUNTIME_VPC_ENDPOINT_DNS=vpce-xxx.bedrock-runtime.us-east-1.vpce.amazona
 STS_VPC_ENDPOINT_DNS=vpce-yyy.sts.us-east-1.vpce.amazonaws.com
 
 # Valkey
-VALKEY_URL=async+rediss://master.prod-valkey.abc123.serverless.use1.cache.amazonaws.com:6379
+VALKEY_URL=rediss://dev-valkey.abc123.serverless.use1.cache.amazonaws.com:6379
 
 # Observability
-OTEL_SERVICE_NAME=bedrock-gateway-prod
+OTEL_SERVICE_NAME=bedrock-proxy-gateway-dev
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
@@ -353,7 +353,7 @@ Environment variables are set in the ECS task definition:
 resource "aws_ecs_task_definition" "api_task" {
   container_definitions = jsonencode([
     {
-      name = "bedrock-gateway"
+      name = "bedrock-proxy-gateway"
       environment = [
         {
           name  = "ENVIRONMENT"
@@ -396,7 +396,7 @@ For sensitive values, use Secrets Manager:
 ```bash
 # Store secret
 aws secretsmanager create-secret \
-  --name bedrock-gateway/dev/oauth \
+  --name bedrock-proxy-gateway/dev/oauth \
   --secret-string '{"client_id":"xxx","client_secret":"yyy"}'
 ```
 
@@ -407,7 +407,7 @@ Reference in ECS task definition:
   "secrets": [
     {
       "name": "OAUTH_CLIENT_SECRET",
-      "valueFrom": "arn:aws:secretsmanager:region:account:secret:bedrock-gateway/dev/oauth:client_secret::"
+      "valueFrom": "arn:aws:secretsmanager:region:account:secret:bedrock-proxy-gateway/dev/oauth:client_secret::"
     }
   ]
 }
@@ -425,7 +425,7 @@ Reference in ECS task definition:
 
 ```bash
 # View task definition
-aws ecs describe-task-definition --task-definition bedrock-gateway-prod
+aws ecs describe-task-definition --task-definition bedrock-proxy-gateway-dev
 ```
 
 ### OAuth validation fails

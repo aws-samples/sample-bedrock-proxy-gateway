@@ -44,8 +44,9 @@ fi
 
 # Configuration
 TFVARS_FILE="${ENVIRONMENT}.tfvars"
-BACKEND_FILE="backend-${ENVIRONMENT}.tfbackend"
-LOCAL_BACKEND_FILE="backend-${ENVIRONMENT}.local.tfbackend"
+LOCAL_TFVARS_FILE="${ENVIRONMENT}.local.tfvars"
+BACKEND_FILE="central-${ENVIRONMENT}.tfbackend"
+LOCAL_BACKEND_FILE="central-${ENVIRONMENT}.local.tfbackend"
 
 export AWS_REGION=us-east-1
 
@@ -107,6 +108,12 @@ cd infrastructure
 if [ ! -f "$TFVARS_FILE" ]; then
     echo "❌ Error: $TFVARS_FILE not found"
     exit 1
+fi
+
+# Prefer local tfvars if it exists
+if [ -f "$LOCAL_TFVARS_FILE" ]; then
+    TFVARS_FILE="$LOCAL_TFVARS_FILE"
+    echo "✓ Using local tfvars: $TFVARS_FILE"
 fi
 
 # Check if backend file exists (prefer .local version)

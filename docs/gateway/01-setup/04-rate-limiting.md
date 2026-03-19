@@ -350,17 +350,17 @@ To update rate limits:
 
 ```bash
 # Edit configuration
-vim backend/app/core/rate_limit/config/prod.yaml
+vim backend/app/core/rate_limit/config/dev.yaml
 
 # Rebuild and push image
 cd backend
-docker build -t bedrock-gateway:latest .
-docker push <ecr-repo>/bedrock-gateway:latest
+docker build -t bedrock-proxy-gateway:latest .
+docker push <ecr-repo>/bedrock-proxy-gateway:latest
 
 # Force ECS deployment
 aws ecs update-service \
-  --cluster bedrock-gateway-prod \
-  --service bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --service bedrock-proxy-gateway-service \
   --force-new-deployment
 ```
 
@@ -381,7 +381,7 @@ The gateway publishes rate limiting metrics to CloudWatch:
 View current quota usage in logs:
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-prod --follow --filter-pattern "quota"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "quota"
 ```
 
 ### Set up alarms
@@ -390,7 +390,7 @@ Create CloudWatch alarms for high quota utilization:
 
 ```bash
 aws cloudwatch put-metric-alarm \
-  --alarm-name bedrock-gateway-high-rate-limit-hits \
+  --alarm-name bedrock-proxy-gateway-high-rate-limit-hits \
   --metric-name RateLimitHits \
   --namespace BedrockGateway \
   --statistic Sum \

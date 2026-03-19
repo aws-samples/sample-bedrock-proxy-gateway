@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 variable "role_name" {
   description = "Name of the IAM role for the OIDC provider"
   type        = string

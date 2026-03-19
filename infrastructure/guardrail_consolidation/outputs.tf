@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 output "consolidated_guardrails_ssm_parameter" {
   description = "SSM parameter name containing consolidated guardrails configuration"
   value       = aws_ssm_parameter.consolidated_guardrails.name

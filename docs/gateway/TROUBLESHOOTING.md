@@ -43,7 +43,7 @@ terraform state list
 **Check logs:**
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow
 ```
 
 **Common causes:**
@@ -71,7 +71,7 @@ aws logs tail /aws/ecs/bedrock-gateway-dev --follow
 curl https://<alb-dns>/health
 
 # Check ECS task logs
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow --filter-pattern "ERROR"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "ERROR"
 ```
 
 **Common causes:**
@@ -211,12 +211,12 @@ curl -i https://<alb-dns>/model/<model-id>/converse \
 ```bash
 # Verify rate limiting enabled
 aws ecs describe-task-definition \
-  --task-definition bedrock-gateway-dev \
+  --task-definition bedrock-proxy-gateway-dev \
   --query 'taskDefinition.containerDefinitions[0].environment[?name==`RATE_LIMITING_ENABLED`]'
 
 # Check Valkey connectivity
 aws elasticache describe-cache-clusters \
-  --cache-cluster-id bedrock-gateway-dev
+  --cache-cluster-id bedrock-proxy-gateway-dev
 ```
 
 **Common causes:**
@@ -242,12 +242,12 @@ aws elasticache describe-cache-clusters \
 ```bash
 # Get Valkey endpoint
 aws elasticache describe-cache-clusters \
-  --cache-cluster-id bedrock-gateway-dev \
+  --cache-cluster-id bedrock-proxy-gateway-dev \
   --show-cache-node-info
 
 # Test connectivity from ECS task
 aws ecs execute-command \
-  --cluster bedrock-gateway-dev \
+  --cluster bedrock-proxy-gateway-dev \
   --task <task-id> \
   --container gateway \
   --interactive \
@@ -368,7 +368,7 @@ curl -N -X POST https://<alb-dns>/model/<model-id>/converse-stream \
 **Check logs:**
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow --filter-pattern "account_id"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "account_id"
 ```
 
 **Common causes:**
@@ -448,7 +448,7 @@ aws ec2 describe-vpc-endpoints \
 
 ```bash
 aws ec2 describe-security-groups \
-  --filters "Name=tag:Name,Values=bedrock-gateway-*"
+  --filters "Name=tag:Name,Values=bedrock-proxy-gateway-*"
 ```
 
 **Common causes:**
@@ -501,7 +501,7 @@ nslookup bedrock-runtime.us-east-1.amazonaws.com
 aws cloudwatch get-metric-statistics \
   --namespace AWS/ECS \
   --metric-name CPUUtilization \
-  --dimensions Name=ServiceName,Value=bedrock-gateway-service \
+  --dimensions Name=ServiceName,Value=bedrock-proxy-gateway-service \
   --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
   --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
   --period 300 \
@@ -525,7 +525,7 @@ aws cloudwatch get-metric-statistics \
 aws cloudwatch get-metric-statistics \
   --namespace AWS/ECS \
   --metric-name MemoryUtilization \
-  --dimensions Name=ServiceName,Value=bedrock-gateway-service \
+  --dimensions Name=ServiceName,Value=bedrock-proxy-gateway-service \
   --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
   --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
   --period 300 \
@@ -546,7 +546,7 @@ aws cloudwatch get-metric-statistics \
 **Check logs:**
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-dev --follow --filter-pattern "cache"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "cache"
 ```
 
 **Solution:**
@@ -560,7 +560,7 @@ aws logs tail /aws/ecs/bedrock-gateway-dev --follow --filter-pattern "cache"
 
 If issues persist:
 
-1. **Check logs:** `aws logs tail /aws/ecs/bedrock-gateway-dev --follow`
+1. **Check logs:** `aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow`
 2. **Enable debug logging:** Set `LOG_LEVEL=DEBUG` in environment variables
 3. **Check X-Ray traces:** Review distributed traces in AWS X-Ray console
 4. **Review metrics:** Check CloudWatch dashboard for anomalies
