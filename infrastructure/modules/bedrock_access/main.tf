@@ -15,7 +15,7 @@ module "iam_role" {
   source = "./iam_role"
 
   role_name                           = var.oidc_role_name
-  aws_account_id                      = var.common.aws_account_id
+  aws_account_id                      = data.aws_caller_identity.shared.account_id
   oidc_provider_arn                   = local.oauth_provider_arn
   oidc_provider_url                   = local.oauth_provider_url_parsed
   jwt_audience                        = var.jwt_audience
@@ -33,7 +33,7 @@ module "iam_role" {
 module "cloudwatch_kms" {
   source = "./cloudwatch_kms"
 
-  aws_account_id     = var.common.aws_account_id
+  aws_account_id     = data.aws_caller_identity.shared.account_id
   central_account_id = var.central_account_id
   kms_alias_name     = "alias/${var.common.environment}-bedrock-logs-key"
   log_group_name     = "/aws/bedrock/modelinvocations"

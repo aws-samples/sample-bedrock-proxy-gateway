@@ -37,7 +37,7 @@ if [ ! -f "$TFVARS_FILE" ]; then
     echo "❌ Error: Neither ${ENVIRONMENT}.local.tfvars nor ${ENVIRONMENT}.tfvars found in infrastructure/"
     exit 1
 fi
-APP_ID=$(grep -E '^\s*app_id\s*=' "$TFVARS_FILE" 2>/dev/null | sed 's/.*=\s*"\(.*\)"/\1/' || echo "myapp")
+APP_ID=$(grep -E '^\s*app_id\s*=' "$TFVARS_FILE" 2>/dev/null | sed 's/.*=[[:space:]]*"\([^"]*\)".*/\1/' || echo "myapp")
 if [ -z "$APP_ID" ]; then APP_ID="myapp"; fi
 echo "📦 Using app_id: $APP_ID (from $(basename $TFVARS_FILE))"
 
@@ -167,11 +167,23 @@ else
       \"Statement\": [{
         \"Effect\": \"Deny\",
         \"Principal\": \"*\",
-        \"Action\": [\"s3:DeleteObject\", \"s3:DeleteBucket\"],
+        \"Action\": [\"s3:DeleteBucket\"],
         \"Resource\": [
-          \"arn:aws:s3:::$BUCKET_NAME\",
-          \"arn:aws:s3:::$BUCKET_NAME/*\"
+          \"arn:aws:s3:::$BUCKET_NAME\"
         ]
+      },
+      {
+        \"Effect\": \"Deny\",
+        \"Principal\": \"*\",
+        \"Action\": [\"s3:DeleteObject\"],
+        \"Resource\": [
+          \"arn:aws:s3:::$BUCKET_NAME/*\"
+        ],
+        \"Condition\": {
+          \"StringNotLike\": {
+            \"s3:prefix\": [\"*.tflock\"]
+          }
+        }
       }]
     }"
 
@@ -300,7 +312,7 @@ if [ -d "$PROJECT_ROOT/backend/app" ]; then
         IMAGE_TAG="$ECR_REPO:$TIMESTAMP-${APP_HASH:0:8}"
 
         cd "$PROJECT_ROOT/backend/app"
-        docker buildx build --platform linux/amd64 -t $IMAGE_TAG .
+        docker build --platform linux/amd64 -t $IMAGE_TAG .
         docker push $IMAGE_TAG
         echo "  ✅ Image pushed: $IMAGE_TAG"
 
@@ -332,7 +344,7 @@ if [ -d "$PROJECT_ROOT/backend/app" ]; then
             OTEL_IMAGE_TAG="$ECR_REGISTRY/$OTEL_ECR_REPO_NAME:latest"
 
             cd "$PROJECT_ROOT/backend/app"
-            docker buildx build --platform linux/amd64 -f OtelDockerfile -t $OTEL_IMAGE_TAG .
+            docker build --platform linux/amd64 -f OtelDockerfile -t $OTEL_IMAGE_TAG .
             docker push $OTEL_IMAGE_TAG
             echo "  ✅ OTEL image pushed: $OTEL_IMAGE_TAG"
 
@@ -345,17 +357,18 @@ else
 fi
 
 # ============================================================================
-# Backend configuration file
+# Backend configuration files (one per stage)
 # ============================================================================
-BACKEND_FILE="$INFRA_DIR/central-${ENVIRONMENT}.tfbackend"
-
-echo "📝 Creating backend configuration: $BACKEND_FILE"
-cat > "$BACKEND_FILE" << EOF
+for STAGE in central shared consolidation; do
+    BF="$INFRA_DIR/${STAGE}-${ENVIRONMENT}.tfbackend"
+    echo "📝 Creating backend config: $BF"
+    cat > "$BF" << EOF
 bucket       = "$BUCKET_NAME"
-key          = "bedrock-proxy-gateway/${ENVIRONMENT}/terraform.tfstate"
+key          = "bedrock-proxy-gateway/${ENVIRONMENT}/${STAGE}/terraform.tfstate"
 region       = "$REGION"
 use_lockfile = true
 EOF
+done
 
 # ============================================================================
 # Summary

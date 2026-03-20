@@ -1,6 +1,7 @@
 infrastructure/.terraform/*
 infrastructure/builds/*
 infrastructure/backend/*.tfbackend
+*.tfbackend
 infrastructure/workspaces/*
 !infrastructure/workspaces/dev.tfvars
 !infrastructure/workspaces/test.tfvars
@@ -165,13 +166,15 @@ ecs-params.yml
 .ecs/
 
 .env
+.env.*
+!.env.template
 .venv
 .vscode
 client_key.pem
 client_cert.pem
 client.p12
 examples/data/
-examples/.env.*
+
 
 # Integration test artifacts
 test/integration/results*/
