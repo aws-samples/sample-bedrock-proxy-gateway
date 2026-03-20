@@ -59,7 +59,6 @@ with open(SLOW_TRACE_FILE, "w") as f:
 with open(TEST_METADATA_FILE, "w") as f:
     f.write("=== Load Test Metadata ===\n")
     f.write(f"Test Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-    f.write("Token Expiration: (will be updated when first token is generated)\n")
     f.write("Test Finish Time: (will be updated when test completes)\n")
     f.write("Total Successful Invocations: (will be updated when test completes)\n")
     for model_id in BEDROCK_MODEL_ID_LIST:
@@ -154,23 +153,6 @@ class BedrockUser(User):
         token_data = response.json()
         return token_data["access_token"], token_data.get("expires_in", 3600)
 
-    def _update_metadata_expiration(self, expires_at, expires_in):
-        """Update the test metadata file with token expiration info."""
-        try:
-            with open(TEST_METADATA_FILE) as f:
-                content = f.read()
-
-            token_info = f"Token Expiration: {expires_at.strftime('%Y-%m-%d %H:%M:%S')} (expires in {expires_in}s)"
-            content = content.replace(
-                "Token Expiration: (will be updated when first token is generated)",
-                token_info,
-            )
-
-            with open(TEST_METADATA_FILE, "w") as f:
-                f.write(content)
-        except Exception as e:
-            print(f"Error updating test metadata file with token info: {e}")
-
     def generate_token(self):
         """Generate an access token from OAuth2 endpoint.
 
@@ -180,7 +162,9 @@ class BedrockUser(User):
         """
         token, expires_in = self._fetch_oauth_token()
         self.token_expires_at = datetime.now() + timedelta(seconds=expires_in)
-        self._update_metadata_expiration(self.token_expires_at, expires_in)
+        print(
+            f"🔑 Token expires at {self.token_expires_at.strftime('%Y-%m-%d %H:%M:%S')} (in {expires_in}s)"
+        )
         return f"Bearer {token}"
 
     def is_token_expired(self):
