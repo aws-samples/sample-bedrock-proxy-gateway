@@ -84,6 +84,12 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+      - id: uv-lock-check
+        name: check uv.lock is up to date
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
+        files: pyproject\.toml|uv\.lock
       - id: pytest
         name: pytest
         entry: uv run pytest test/unit --cov=backend/app --cov-fail-under=80 --tb=short
