@@ -1,6 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_bedrock_guardrail" "bedrock_guardrails" {
   for_each                  = toset(keys(local.guardrail_profiles))
   name                      = "${local.guardrail_prefix}-${each.value}-guardrails"
@@ -91,9 +93,10 @@ resource "aws_iam_role_policy" "bedrock_logging_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = [
+        Resource = distinct([
+          "arn:aws:logs:${var.common.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${var.log_group_name}:*",
           "arn:aws:logs:${var.common.aws_region}:${var.central_account_id}:log-group:${var.log_group_name}:*"
-        ]
+        ])
       },
       {
         Effect = "Allow"
@@ -102,9 +105,10 @@ resource "aws_iam_role_policy" "bedrock_logging_policy" {
           "kms:GenerateDataKey*",
           "kms:DescribeKey"
         ]
-        Resource = [
+        Resource = distinct([
+          "arn:aws:kms:${var.common.aws_region}:${data.aws_caller_identity.current.account_id}:key/*",
           "arn:aws:kms:${var.common.aws_region}:${var.central_account_id}:key/*"
-        ]
+        ])
       }
     ]
   })

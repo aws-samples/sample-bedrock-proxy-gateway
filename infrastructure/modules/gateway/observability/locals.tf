@@ -9,7 +9,7 @@ locals {
   resource_name = "${local.name_prefix}-${var.common.service_name}"
 
   # S3 bucket name with account ID, region, environment, service and signal suffix
-  s3_bucket_name = "s3-${var.common.aws_account_id}-${var.common.aws_region}-${var.common.environment}-${var.common.service_name}-observability"
+  s3_bucket_name = "s3-${var.common.aws_account_id}-${var.common.aws_region}-${var.common.app_id}-${var.common.environment}-observability"
 
   # Kinesis stream names with appropriate suffixes
 
