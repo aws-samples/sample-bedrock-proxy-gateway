@@ -162,9 +162,6 @@ class BedrockUser(User):
         """
         token, expires_in = self._fetch_oauth_token()
         self.token_expires_at = datetime.now() + timedelta(seconds=expires_in)
-        print(
-            f"🔑 Token expires at {self.token_expires_at.strftime('%Y-%m-%d %H:%M:%S')} (in {expires_in}s)"
-        )
         return f"Bearer {token}"
 
     def is_token_expired(self):
