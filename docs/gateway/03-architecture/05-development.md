@@ -133,6 +133,27 @@ Tests fetch OAuth credentials from Secrets Manager using the `GATEWAY_SECRET_ID`
 
 Results are saved to `test/integration/results/` with timestamps. See [test/integration/README.md](../../../test/integration/README.md) for model coverage and configuration details.
 
+### Load tests
+
+Load tests use [Locust](https://locust.io/) to measure gateway overhead by sending converse requests through the proxy and comparing end-to-end latency against Bedrock's reported latency.
+
+**Prerequisites:** A deployed gateway, a configured `.env.dev` at the repository root, and Locust installed (`pip install locust`).
+
+```bash
+cd test/load
+
+# Quick single-user smoke test (30 seconds)
+locust -f locust.py --users 1 --spawn-rate 1 --run-time 30s --headless --only-summary
+
+# Multi-user test (3 minutes)
+locust -f locust.py --users 16 --spawn-rate 10 --run-time 3m --headless
+
+# Sequential ramp-up (8 → 16 → 32 → 50 → 64 users, 1 min each)
+ENVIRONMENT=dev ./run_load_tests_with_tags.sh 1
+```
+
+Edit `BEDROCK_MODEL_ID_LIST` in `locust.py` to choose which models to test. Results are saved to `test/load/tmp_results/` with slow trace details for requests exceeding the overhead threshold.
+
 ### Linting and formatting
 
 ```bash
@@ -172,7 +193,8 @@ sample-bedrock-proxy-gateway/
 │   └── destroy.sh               # Cleanup script
 ├── test/
 │   ├── unit/                    # Unit tests
-│   └── integration/             # Integration tests
+│   ├── integration/             # Integration tests
+│   └── load/                    # Load tests (Locust)
 └── docs/
     └── gateway/                 # Documentation
 ```
