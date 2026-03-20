@@ -116,13 +116,22 @@ uv run pytest test/unit --cov=backend/app --cov-report=html
 
 ### Integration tests
 
-```bash
-# Run integration tests (requires AWS credentials)
-uv run pytest test/integration
+Integration tests validate all Bedrock APIs, embedding models, and framework integrations (LangChain, LangGraph, Strands, LiteLLM) against a live gateway deployment.
 
-# Run specific integration test
-uv run pytest test/integration/test_bedrock_integration.py
+**Prerequisites:** A deployed gateway and a configured `.env.dev` at the repository root (see [.env.template](../../../.env.template)).
+
+```bash
+# Run Python integration tests
+cd test/integration
+ENVIRONMENT=dev ./run_python_tests.sh
+
+# Run Java integration tests (requires Maven)
+ENVIRONMENT=dev ./run_java_tests.sh
 ```
+
+Tests fetch OAuth credentials from Secrets Manager using the `GATEWAY_SECRET_ID` in your `.env` file — no hardcoded secrets needed.
+
+Results are saved to `test/integration/results/` with timestamps. See [test/integration/README.md](../../../test/integration/README.md) for model coverage and configuration details.
 
 ### Linting and formatting
 
