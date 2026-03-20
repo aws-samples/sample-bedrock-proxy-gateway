@@ -128,6 +128,25 @@ Test your custom domain:
 curl https://gateway.example.com/health
 ```
 
+### TLS certificate note
+
+By default, the gateway deploys with a self-signed certificate on the ALB. This means clients must disable TLS verification to connect — which is why the example notebooks use `verify=False` in the boto3 client:
+
+```python
+bedrock = boto3.client(
+    'bedrock-runtime',
+    endpoint_url=API_URL,
+    config=Config(signature_version=UNSIGNED),
+    verify=False  # Required for self-signed certificates
+)
+```
+
+> [!IMPORTANT]
+> Replace the self-signed certificate with an ACM-issued certificate by configuring a custom domain (see above). ACM certificates are free, auto-renewing, and trusted by all clients. Once you have a valid certificate, you can remove `verify=False` to enable full TLS verification.
+
+> [!NOTE]
+> Even with `verify=False`, traffic is still encrypted in transit — only server identity verification is skipped.
+
 ## Private ALB
 
 Deploy an internal ALB accessible only from your VPC or connected networks.
