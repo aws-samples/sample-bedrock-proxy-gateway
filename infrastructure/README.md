@@ -12,18 +12,21 @@ Terraform infrastructure for deploying the Bedrock Proxy Gateway across central 
 ### Guardrail Consolidation
 
 Each shared account writes its guardrails to central account SSM:
+
 ```
-/bedrock-gateway/{env}/guardrails/account/{account-id}
+/bedrock-proxy-gateway/{env}/guardrails/account/{account-id}
 ```
 
 Consolidation module reads all account registries and merges into:
+
 ```
-/bedrock-gateway/{env}/guardrails/consolidated-config
+/bedrock-proxy-gateway/{env}/guardrails/consolidated-config
 ```
 
 ## Prerequisites
 
 1. Configure AWS profiles in `~/.aws/credentials`:
+
 ```ini
 [central-prod]
 aws_access_key_id = YOUR_CENTRAL_ACCOUNT_KEY
@@ -34,7 +37,8 @@ aws_access_key_id = YOUR_SHARED_ACCOUNT_KEY
 aws_secret_access_key = YOUR_SHARED_ACCOUNT_SECRET
 ```
 
-2. Run setup script to create S3 backend:
+1. Run setup script to create S3 backend:
+
 ```bash
 ../scripts/setup.sh dev central-prod shared-account-1
 ```

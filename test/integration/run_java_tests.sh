@@ -1,42 +1,57 @@
 #!/bin/bash
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 
 # Prerequisites:
-# 1. Create required certificate files in repository root directory:
-#    - client_cert.pem (Client certificate for mTLS authentication)
-#    - client_key.pem (Private key for mTLS authentication)
+# 1. Create .env.dev (or .env.test) at the repository root with:
+#    AWS_PROFILE, AWS_REGION, GATEWAY_API_URL, GATEWAY_SECRET_ID
 #
-# 2. Create PKCS#12 keystore file:
+# 2. The GATEWAY_SECRET_ID must reference a Secrets Manager secret containing:
+#    client_id, client_secret, token_url, audience
+#
+# 3. Optional: PKCS#12 keystore for mTLS:
 #    cd test/integration/java
 #    openssl pkcs12 -export -in ../../../client_cert.pem -inkey ../../../client_key.pem -out client.p12 -name "client" -passout pass:
-#    cd ../../..
-#
-# 3. Create a .env file in repository root directory with your client details:
-#
-#    ENVIRONMENT="dev" # or test
-#    CLIENT_ID=<REPLACE-WITH-YOUR-CLIENT-ID>
-#    CLIENT_SECRET=<REPLACE-WITH-YOUR-CLIENT-SECRET>
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Load environment variables from .env file in repo root
-if [ -f "$REPO_ROOT/.env" ]; then
+ENVIRONMENT="${ENVIRONMENT:-dev}"
+ENV_FILE="$REPO_ROOT/.env.${ENVIRONMENT}"
+
+# Load environment variables from .env file
+if [ -f "$ENV_FILE" ]; then
     set -a
-    source "$REPO_ROOT/.env"
+    source "$ENV_FILE"
     set +a
 else
-    echo "❌ Error: .env file not found at $REPO_ROOT/.env"
-    echo "Please create a .env file with CLIENT_ID, CLIENT_SECRET, and ENVIRONMENT variables."
+    echo "❌ Error: $ENV_FILE not found"
+    echo "Copy .env.template to .env.${ENVIRONMENT} and configure it."
     exit 1
 fi
+
+# Fetch credentials from Secrets Manager
+echo "Fetching credentials from Secrets Manager..."
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+    --secret-id "${GATEWAY_SECRET_ID}" \
+    --profile "${AWS_PROFILE:-default}" \
+    --region "${AWS_REGION:-us-east-1}" \
+    --query SecretString --output text)
+
+export CLIENT_ID=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['client_id'])")
+export CLIENT_SECRET=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['client_secret'])")
+export OAUTH_TOKEN_URL=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['token_url'])")
+export OAUTH_AUDIENCE=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('audience',''))")
+export GATEWAY_API_URL="${GATEWAY_API_URL}"
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 RESULTS_DIR="$SCRIPT_DIR/results/$TIMESTAMP"
 
 echo "=== Java Integration Tests ==="
-echo "Environment: ${ENVIRONMENT:-dev}"
+echo "Environment: ${ENVIRONMENT}"
+echo "Env file: .env.${ENVIRONMENT}"
 echo "Timestamp: $(date)"
 echo
 

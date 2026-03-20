@@ -128,6 +128,25 @@ Test your custom domain:
 curl https://gateway.example.com/health
 ```
 
+### TLS certificate note
+
+By default, the gateway deploys with a self-signed certificate on the ALB. This means clients must disable TLS verification to connect — which is why the example notebooks use `verify=False` in the boto3 client:
+
+```python
+bedrock = boto3.client(
+    'bedrock-runtime',
+    endpoint_url=API_URL,
+    config=Config(signature_version=UNSIGNED),
+    verify=False  # Required for self-signed certificates
+)
+```
+
+> [!IMPORTANT]
+> Replace the self-signed certificate with an ACM-issued certificate by configuring a custom domain (see above). ACM certificates are free, auto-renewing, and trusted by all clients. Once you have a valid certificate, you can remove `verify=False` to enable full TLS verification.
+
+> [!NOTE]
+> Even with `verify=False`, traffic is still encrypted in transit — only server identity verification is skipped.
+
 ## Private ALB
 
 Deploy an internal ALB accessible only from your VPC or connected networks.
@@ -309,7 +328,7 @@ Store sensitive configuration in Secrets Manager:
 ```bash
 # Create secret
 aws secretsmanager create-secret \
-  --name bedrock-gateway/dev/config \
+  --name bedrock-proxy-gateway/dev/config \
   --secret-string '{
     "oauth_client_secret": "xxx",
     "api_keys": ["key1", "key2"]
@@ -322,7 +341,7 @@ Reference in ECS task definition:
 secrets = [
   {
     name      = "OAUTH_CLIENT_SECRET"
-    valueFrom = "arn:aws:secretsmanager:us-east-1:123456789012:secret:bedrock-gateway/dev/config:oauth_client_secret::"
+    valueFrom = "arn:aws:secretsmanager:us-east-1:123456789012:secret:bedrock-proxy-gateway/dev/config:oauth_client_secret::"
   }
 ]
 ```
@@ -355,7 +374,7 @@ Adjust task CPU and memory based on actual usage:
 aws cloudwatch get-metric-statistics \
   --namespace AWS/ECS \
   --metric-name CPUUtilization \
-  --dimensions Name=ServiceName,Value=bedrock-gateway-service \
+  --dimensions Name=ServiceName,Value=bedrock-proxy-gateway-service \
   --start-time $(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%S) \
   --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
   --period 3600 \
@@ -405,11 +424,11 @@ Set up SNS notifications for GuardDuty findings:
 
 ```bash
 # Create SNS topic for security alerts
-aws sns create-topic --name bedrock-gateway-security-alerts
+aws sns create-topic --name bedrock-proxy-gateway-security-alerts
 
 # Subscribe your security team
 aws sns subscribe \
-  --topic-arn arn:aws:sns:us-east-1:123456789012:bedrock-gateway-security-alerts \
+  --topic-arn arn:aws:sns:us-east-1:123456789012:bedrock-proxy-gateway-security-alerts \
   --protocol email \
   --notification-endpoint security-team@example.com
 
@@ -429,7 +448,7 @@ aws events put-rule \
 # Add SNS as target
 aws events put-targets \
   --rule guardduty-ecs-findings \
-  --targets "Id"="1","Arn"="arn:aws:sns:us-east-1:123456789012:bedrock-gateway-security-alerts"
+  --targets "Id"="1","Arn"="arn:aws:sns:us-east-1:123456789012:bedrock-proxy-gateway-security-alerts"
 ```
 
 #### Monitor for specific threats
@@ -628,7 +647,7 @@ terraform apply -target=module.shared_account.module.bedrock_guardrails
 1. Associate the guardrail with your use case in the rate limiting configuration:
 
 ```yaml
-# backend/app/core/rate_limit/config/prod.yaml
+# backend/app/core/rate_limit/config/dev.yaml
 permissions:
   customer-support:
     name: "Customer Support"

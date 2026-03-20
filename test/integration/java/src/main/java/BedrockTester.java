@@ -49,9 +49,10 @@ public class BedrockTester {
     public BedrockTester() throws Exception {
         // Load configuration
         var cfg = MAPPER.readTree(Files.readAllBytes(CONFIG_JSON));
-        String env = System.getenv().getOrDefault("ENVIRONMENT", "local");
-        String apiUrl = cfg.path("environments").path(env).path("api_url").asText();
-        String authUrl = cfg.path("environments").path(env).path("auth_url").asText();
+
+        // Environment variables override config.json
+        String apiUrl = System.getenv().getOrDefault("GATEWAY_API_URL", "https://your-gateway-url.com");
+        String authUrl = System.getenv().getOrDefault("OAUTH_TOKEN_URL", "https://your-oauth-provider.com/oauth/token");
 
         // Load inference and embedding models separately
         this.inferenceModels = new ArrayList<>();

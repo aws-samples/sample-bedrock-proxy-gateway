@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Additional tests to boost coverage to 75%."""
 
 from unittest.mock import Mock, patch

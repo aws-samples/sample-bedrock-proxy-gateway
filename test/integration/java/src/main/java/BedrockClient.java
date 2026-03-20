@@ -264,8 +264,10 @@ public class BedrockClient {
                 logger.info("Client ID: " + clientId.substring(0, Math.min(8, clientId.length())) + "...");
 
                 String payload = String.format(
-                        "client_id=%s&client_secret=%s&grant_type=client_credentials",
-                        clientId, clientSecret);
+                        "client_id=%s&client_secret=%s&grant_type=client_credentials&audience=%s&scope=%s",
+                        clientId, clientSecret,
+                        System.getenv().getOrDefault("OAUTH_AUDIENCE", ""),
+                        "bedrockproxygateway:invoke");
 
                 HttpRequest request = HttpRequest.newBuilder(URI.create(tokenUrl))
                         .header("Content-Type", "application/x-www-form-urlencoded")

@@ -231,7 +231,7 @@ Store OAuth credentials in [AWS Secrets Manager](https://aws.amazon.com/secrets-
 
 ```bash
 aws secretsmanager create-secret \
-  --name bedrock-gateway-dev-oauth-credentials \
+  --name bedrock-proxy-gateway-dev-oauth-credentials \
   --secret-string '{
     "client_id": "<CLIENT_ID>",
     "client_secret": "<CLIENT_SECRET>",

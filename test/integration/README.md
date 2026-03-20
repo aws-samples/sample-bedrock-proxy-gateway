@@ -6,11 +6,12 @@ Comprehensive integration tests for all Bedrock models and APIs in Python and Ja
 
 ```
 repo-root/
-├── .env                         # Environment configuration (place here)
-├── client_cert.pem              # mTLS certificate (place here)
-├── client_key.pem               # mTLS private key (place here)
+├── .env.template                # Environment configuration template
+├── .env.dev                     # Your dev environment config (gitignored)
+├── client_cert.pem              # mTLS certificate (optional, gitignored)
+├── client_key.pem               # mTLS private key (optional, gitignored)
 └── test/integration/
-    ├── config.json              # Model and environment configuration
+    ├── config.json              # Model configuration
     ├── python/                  # Python tests
     │   ├── main.py              # Main test runner
     │   └── bedrock_client.py    # Gateway authentication client
@@ -29,14 +30,14 @@ repo-root/
 ## Tested Models
 
 ### Python Tests
+
 - Anthropic Claude Sonnet 4
 - Amazon Nova Lite
 - Meta Llama 3 8B
-- Mistral 7B
-- Cohere Embed English v3
 - Amazon Titan Embed Text v1
 
 ### Java Tests
+
 - Amazon Nova Lite (inference)
 - Amazon Titan Embed Text v1 (embedding)
 
@@ -59,20 +60,23 @@ repo-root/
 
 ### Certificate Files
 
-Create required certificate files in the **repository root** directory:
+Create required certificate files in the **repository root** directory (only if mTLS is enabled):
 
 - `client_cert.pem` (Client certificate for mTLS authentication)
 - `client_key.pem` (Private key for mTLS authentication)
 
 ### Environment Configuration
 
-Create a `.env` file in the **repository root** directory with your client details:
+Copy `.env.template` to create an environment-specific file at the **repository root**:
 
 ```bash
-ENVIRONMENT="dev" # or qa or preprod
-CLIENT_ID=<REPLACE-WITH-YOUR-CLIENT-ID>
-CLIENT_SECRET=<REPLACE-WITH-YOUR-CLIENT-SECRET>
+cp .env.template .env.dev
+# Edit .env.dev with your environment values:
+#   AWS_PROFILE, AWS_REGION, GATEWAY_API_URL, GATEWAY_SECRET_ID
 ```
+
+The `GATEWAY_SECRET_ID` must reference a Secrets Manager secret containing:
+`client_id`, `client_secret`, `token_url`, `audience`
 
 ## Running Tests
 
@@ -85,6 +89,7 @@ CLIENT_SECRET=<REPLACE-WITH-YOUR-CLIENT-SECRET>
 ### Java Only
 
 One-time setup:
+
 ```bash
 cd test/integration/java
 openssl pkcs12 -export -in ../../../client_cert.pem -inkey ../../../client_key.pem -out client.p12 -name "client" -passout pass:
@@ -92,6 +97,7 @@ cd ../../..
 ```
 
 Run the test:
+
 ```bash
 ./run_java_tests.sh
 ```
@@ -120,10 +126,12 @@ Tests generate detailed reports showing:
 The tests verify gateway compatibility with popular AI frameworks:
 
 ### Python
+
 - `langchain-aws`: LangChain Bedrock integration
 - `langgraph`: Graph-based workflow framework
 - `litellm`: Universal LLM proxy library
 - `strands`: Agent-based workflow framework
 
 ### Java
+
 - Spring AI Bedrock Converse (1.0.0-M5)

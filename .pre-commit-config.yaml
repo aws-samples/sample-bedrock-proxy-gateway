@@ -1,7 +1,7 @@
 repos:
   # Ruff for Python formatting and linting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.6
+    rev: v0.15.7
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -40,7 +40,7 @@ repos:
 
   # Security scanning
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.9.2
+    rev: 1.9.4
     hooks:
       - id: bandit
         files: ^backend/.*\.py$
@@ -48,7 +48,7 @@ repos:
 
   # Terraform hooks
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.104.0
+    rev: v1.105.0
     hooks:
       - id: terraform_docs
         name: terraform docs
@@ -60,7 +60,7 @@ repos:
       - id: terraform_checkov
         name: checkov
         args:
-          - --args=--config-file .checkov.yaml
+          - --args=--config-file __GIT_WORKING_DIR__/.checkov.yaml
           - --args=--skip-path .*/\.external_modules/.*
           - "--args=--skip-path=.*/modules/.*"
           - --hook-config=--parallelism-ci-cpu-cores=2
@@ -84,6 +84,12 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+      - id: uv-lock-check
+        name: check uv.lock is up to date
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
+        files: pyproject\.toml|uv\.lock
       - id: pytest
         name: pytest
         entry: uv run pytest test/unit --cov=backend/app --cov-fail-under=80 --tb=short
