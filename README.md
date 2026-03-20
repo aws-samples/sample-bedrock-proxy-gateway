@@ -93,6 +93,9 @@ Interactive Jupyter notebooks are available in the [examples/](examples/) direct
 
 ## Security
 
+> [!NOTE]
+> The gateway deploys with a self-signed TLS certificate by default. The example notebooks use `verify=False` to accommodate this. Traffic is still encrypted, but server identity is not verified. To enable full TLS verification, configure a [custom domain with an ACM certificate](docs/gateway/01-setup/07-advanced.md#custom-domains) and remove `verify=False`.
+
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 
 ## License
