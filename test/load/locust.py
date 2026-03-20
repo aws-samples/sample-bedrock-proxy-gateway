@@ -114,12 +114,12 @@ events.test_stop.add_listener(on_test_stop)
 class BedrockUser(User):
     """Simulates a Locust user that sends converse requests through the proxy gateway."""
 
-    def generate_token(self):
-        """Generate an access token from OAuth2 endpoint.
+    def _fetch_oauth_token(self):
+        """Fetch OAuth credentials from Secrets Manager and request an access token.
 
         Returns
         -------
-            str: Bearer token string for Authorization header.
+            tuple: (access_token, expires_in) from the OAuth provider.
         """
         secret_id = os.getenv("GATEWAY_SECRET_ID", "")
         if not secret_id:
@@ -133,11 +133,6 @@ class BedrockUser(User):
             session.client("secretsmanager").get_secret_value(SecretId=secret_id)["SecretString"]
         )
 
-        oauth_token_url = secret["token_url"]
-        client_id = secret["client_id"]
-        client_secret = secret["client_secret"]
-        audience = secret.get("audience", "")
-
         # Setup mTLS certificates if available
         cert_path = os.getenv("MTLS_CERT_PATH")
         key_path = os.getenv("MTLS_KEY_PATH")
@@ -147,19 +142,26 @@ class BedrockUser(User):
             self.cert_config = None
 
         payload = {
-            "client_id": client_id,
-            "client_secret": client_secret,
+            "client_id": secret["client_id"],
+            "client_secret": secret["client_secret"],  # noqa: S105
             "grant_type": "client_credentials",
-            "audience": audience,
+            "audience": secret.get("audience", ""),
             "scope": "bedrockproxygateway:invoke",
         }
 
-        response = requests.post(oauth_token_url, data=payload, cert=self.cert_config)
+        response = requests.post(secret["token_url"], data=payload, cert=self.cert_config)
         response.raise_for_status()
         token_data = response.json()
-        token = token_data["access_token"]
+        return token_data["access_token"], token_data.get("expires_in", 3600)
 
-        expires_in = token_data.get("expires_in", 3600)
+    def generate_token(self):
+        """Generate an access token from OAuth2 endpoint.
+
+        Returns
+        -------
+            str: Bearer token string for Authorization header.
+        """
+        token, expires_in = self._fetch_oauth_token()
         self.token_expires_at = datetime.now() + timedelta(seconds=expires_in)
 
         try:
