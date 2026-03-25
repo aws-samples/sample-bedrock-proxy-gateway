@@ -5,6 +5,7 @@
 
 from unittest.mock import AsyncMock, Mock, patch
 
+import orjson
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 from fastapi import HTTPException
@@ -41,6 +42,7 @@ class TestBedrockInvokeStream:
         """Test successful invoke model stream API call."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
 
         mock_bedrock_client = AsyncMock()
         mock_stream = Mock()
@@ -72,6 +74,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with guardrail configuration."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
         mock_request.state.guardrail_config = {
             "guardrailIdentifier": "test-guardrail",
             "guardrailVersion": "1",
@@ -107,6 +110,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with ClientError in generator."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
 
         mock_bedrock_client = AsyncMock()
         error_response = {
@@ -139,6 +143,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with general error in generator."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
 
         mock_bedrock_client = AsyncMock()
         mock_stream = Mock()
@@ -169,6 +174,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with ClientError before streaming."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
         # Ensure request.state doesn't have guardrail_config
         mock_request.state = Mock()
         del mock_request.state.guardrail_config  # This will make getattr return None
@@ -203,6 +209,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with ParamValidationError."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
         # Ensure request.state doesn't have guardrail_config
         mock_request.state = Mock()
         del mock_request.state.guardrail_config  # This will make getattr return None
@@ -233,6 +240,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with general exception."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
         # Ensure request.state doesn't have guardrail_config
         mock_request.state = Mock()
         del mock_request.state.guardrail_config  # This will make getattr return None
@@ -263,6 +271,7 @@ class TestBedrockInvokeStream:
         """Test that HTTPException is passed through unchanged."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
         # Ensure request.state doesn't have guardrail_config
         mock_request.state = Mock()
         del mock_request.state.guardrail_config  # This will make getattr return None
@@ -292,6 +301,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with empty error message."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
         # Ensure request.state doesn't have guardrail_config
         mock_request.state = Mock()
         del mock_request.state.guardrail_config  # This will make getattr return None
@@ -326,6 +336,7 @@ class TestBedrockInvokeStream:
         """Test invoke stream with proper content type headers."""
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"prompt": "test prompt"})
+        mock_request.body = AsyncMock(return_value=orjson.dumps({"prompt": "test prompt"}))
 
         mock_bedrock_client = AsyncMock()
         mock_stream = Mock()

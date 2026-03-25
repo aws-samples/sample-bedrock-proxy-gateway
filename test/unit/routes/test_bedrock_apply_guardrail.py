@@ -5,6 +5,7 @@
 
 from unittest.mock import AsyncMock, Mock, patch
 
+import orjson
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 from fastapi import HTTPException
@@ -40,12 +41,14 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_success(self):
         """Test successful apply guardrail API call."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={
-                "content": [{"text": "test content"}],
-                "outputScope": "FULL",
-                "source": "INPUT",
-            }
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps(
+                {
+                    "content": [{"text": "test content"}],
+                    "outputScope": "FULL",
+                    "source": "INPUT",
+                }
+            )
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",
@@ -78,8 +81,8 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_no_resolved_guardrail(self):
         """Test apply guardrail with no resolved guardrail."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={"content": [{"text": "test content"}], "source": "INPUT"}
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps({"content": [{"text": "test content"}], "source": "INPUT"})
         )
         # Ensure request.state doesn't have resolved_guardrail
         mock_request.state = Mock()
@@ -110,12 +113,14 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_with_optional_fields(self):
         """Test apply guardrail with optional fields."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={
-                "content": [{"text": "test content"}],
-                "outputScope": "INTERVENTIONS",
-                "source": "OUTPUT",
-            }
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps(
+                {
+                    "content": [{"text": "test content"}],
+                    "outputScope": "INTERVENTIONS",
+                    "source": "OUTPUT",
+                }
+            )
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",
@@ -151,8 +156,8 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_client_error(self):
         """Test apply guardrail with ClientError."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={"content": [{"text": "test content"}], "source": "INPUT"}
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps({"content": [{"text": "test content"}], "source": "INPUT"})
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",
@@ -190,8 +195,8 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_client_error_empty_message(self):
         """Test apply guardrail with ClientError having empty message."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={"content": [{"text": "test content"}], "source": "INPUT"}
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps({"content": [{"text": "test content"}], "source": "INPUT"})
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",
@@ -232,8 +237,8 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_param_validation_error(self):
         """Test apply guardrail with ParamValidationError."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={"content": [{"text": "test content"}], "source": "INPUT"}
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps({"content": [{"text": "test content"}], "source": "INPUT"})
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",
@@ -267,8 +272,8 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_general_exception(self):
         """Test apply guardrail with general exception."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={"content": [{"text": "test content"}], "source": "INPUT"}
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps({"content": [{"text": "test content"}], "source": "INPUT"})
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",
@@ -302,8 +307,8 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_http_exception_passthrough(self):
         """Test that HTTPException is passed through unchanged."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={"content": [{"text": "test content"}], "source": "INPUT"}
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps({"content": [{"text": "test content"}], "source": "INPUT"})
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",
@@ -339,15 +344,17 @@ class TestBedrockApplyGuardrail:
     async def test_apply_guardrail_multiple_content_items(self):
         """Test apply guardrail with multiple content items."""
         mock_request = Mock()
-        mock_request.json = AsyncMock(
-            return_value={
-                "content": [
-                    {"text": "first content"},
-                    {"text": "second content"},
-                    {"image": {"format": "png", "source": {"bytes": b"image_data"}}},
-                ],
-                "source": "INPUT",
-            }
+        mock_request.body = AsyncMock(
+            return_value=orjson.dumps(
+                {
+                    "content": [
+                        {"text": "first content"},
+                        {"text": "second content"},
+                        {"image": {"format": "png", "source": {"bytes": "aW1hZ2VfZGF0YQ=="}}},
+                    ],
+                    "source": "INPUT",
+                }
+            )
         )
         mock_request.state.resolved_guardrail = {
             "guardrailIdentifier": "actual-guardrail-id",

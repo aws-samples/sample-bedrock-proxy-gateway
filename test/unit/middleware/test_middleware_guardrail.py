@@ -337,7 +337,8 @@ class TestGuardrailMiddleware:
             "guardrailConfig": {"guardrailIdentifier": "baseline-security"},
         }
         request.body = AsyncMock(return_value=json.dumps(body_data).encode())
-        request.state = Mock()
+        request.state = Mock(spec=[])
+        request.state.parsed_body = body_data
 
         mock_config = {"guardrailIdentifier": "gr-123", "guardrailVersion": "1"}
         self.mock_guardrail_service.get_guardrail_config = AsyncMock(return_value=mock_config)
@@ -363,7 +364,8 @@ class TestGuardrailMiddleware:
             "guardrailConfig": {"guardrailIdentifier": "nonexistent"},
         }
         request.body = AsyncMock(return_value=json.dumps(body_data).encode())
-        request.state = Mock()
+        request.state = Mock(spec=[])
+        request.state.parsed_body = body_data
 
         # The guardrail is not found, HTTPException is raised but caught and logged
         self.mock_guardrail_service.get_guardrail_config = AsyncMock(return_value=None)
@@ -387,7 +389,8 @@ class TestGuardrailMiddleware:
         request = Mock(spec=Request)
         body_data = {"messages": [{"role": "user", "content": "test"}]}
         request.body = AsyncMock(return_value=json.dumps(body_data).encode())
-        request.state = Mock()
+        request.state = Mock(spec=[])
+        request.state.parsed_body = body_data
 
         result = await self.middleware._get_guardrail_from_body(
             request, "account-456", "client-123"
@@ -400,6 +403,7 @@ class TestGuardrailMiddleware:
         """Test guardrail extraction from empty body."""
         request = Mock(spec=Request)
         request.body = AsyncMock(return_value=b"")
+        request.state = Mock(spec=[])
 
         result = await self.middleware._get_guardrail_from_body(
             request, "account-456", "client-123"
@@ -412,6 +416,7 @@ class TestGuardrailMiddleware:
         """Test guardrail extraction from body with invalid JSON."""
         request = Mock(spec=Request)
         request.body = AsyncMock(return_value=b"invalid json")
+        request.state = Mock(spec=[])
 
         result = await self.middleware._get_guardrail_from_body(
             request, "account-456", "client-123"
@@ -425,6 +430,7 @@ class TestGuardrailMiddleware:
         """Test guardrail extraction from body with exception."""
         request = Mock(spec=Request)
         request.body = AsyncMock(side_effect=Exception("Body read error"))
+        request.state = Mock(spec=[])
 
         result = await self.middleware._get_guardrail_from_body(
             request, "account-456", "client-123"

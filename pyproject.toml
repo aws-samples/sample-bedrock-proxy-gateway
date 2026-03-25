@@ -75,7 +75,7 @@ dev = [
     # Integration testing
     "langchain-aws>=0.2.31",
     "langgraph>=0.6.6",
-    "litellm>=1.76.1",
+    "litellm>=1.76.1,<1.82.7",
     "strands-agents>=1.0.1",
     "pillow>=11.3.0",
     "python-dotenv>=1.1.1",

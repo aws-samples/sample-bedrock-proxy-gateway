@@ -283,7 +283,7 @@ class TestBedrockCommon:
         assert result == mock_client
         # Verify account_id was extracted and passed
         self.mock_bedrock_service.get_authenticated_client.assert_called_with(
-            "valid-token", "account_id"
+            "valid-token", "account_id", mock_request.state.jwt_claims
         )
 
     @pytest.mark.asyncio
@@ -310,7 +310,9 @@ class TestBedrockCommon:
         result = await get_bedrock_client(mock_request)
         assert result == mock_client
         # Verify None was passed as account_id due to invalid rate_ctx
-        self.mock_bedrock_service.get_authenticated_client.assert_called_with("valid-token", None)
+        self.mock_bedrock_service.get_authenticated_client.assert_called_with(
+            "valid-token", None, mock_request.state.jwt_claims
+        )
 
     def test_router_route_count(self):
         """Test that router has the expected number of routes."""

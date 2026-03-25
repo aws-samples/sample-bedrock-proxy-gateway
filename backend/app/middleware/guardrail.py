@@ -3,11 +3,11 @@
 
 """Guardrail middleware for processing guardrail configuration."""
 
-import json
 import logging
 import re
 from typing import Any
 
+import orjson
 from fastapi import HTTPException, Request
 from observability.context_logger import ContextLogger
 from observability.context_vars import client_id_context
@@ -18,8 +18,16 @@ from observability.guardrail_metrics import (
 from observability.guardrail_tracing import guardrail_span
 from services.guardrail_service import GuardrailService
 from starlette.middleware.base import BaseHTTPMiddleware
+from util.request_body import get_parsed_body
 
 logger = ContextLogger(logging.getLogger(__name__))
+
+# Pre-compiled regex patterns for O(1) endpoint detection
+_BEDROCK_ENDPOINT_RE = re.compile(
+    r"^/(?:model/.+/(?:converse(?:-stream)?|invoke(?:-with-response-stream)?)"
+    r"|guardrail/.+/apply)$"
+)
+_GUARDRAIL_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 class GuardrailMiddleware(BaseHTTPMiddleware):
@@ -58,14 +66,7 @@ class GuardrailMiddleware(BaseHTTPMiddleware):
 
     def _is_bedrock_endpoint(self, path: str) -> bool:
         """Check if path is a Bedrock API endpoint."""
-        bedrock_patterns = [
-            r"/model/.+/converse",
-            r"/model/.+/converse-stream",
-            r"/model/.+/invoke",
-            r"/model/.+/invoke-with-response-stream",
-            r"/guardrail/.+/apply",
-        ]
-        return any(re.match(pattern, path) for pattern in bedrock_patterns)
+        return bool(_BEDROCK_ENDPOINT_RE.match(path))
 
     async def _extract_guardrail_config(self, request: Request) -> dict[str, Any] | None:
         """Extract guardrail configuration based on API type."""
@@ -106,7 +107,7 @@ class GuardrailMiddleware(BaseHTTPMiddleware):
         """Get guardrail config from HTTP headers."""
         guardrail_logical_id = request.headers.get("X-Amzn-Bedrock-GuardrailIdentifier")
 
-        if guardrail_logical_id and re.match("^[a-zA-Z0-9_-]+$", guardrail_logical_id):
+        if guardrail_logical_id and _GUARDRAIL_ID_RE.match(guardrail_logical_id):
             guardrail_config = await self.guardrail_service.get_guardrail_config(
                 guardrail_logical_id, shared_account_id
             )
@@ -138,16 +139,13 @@ class GuardrailMiddleware(BaseHTTPMiddleware):
     ) -> dict[str, Any] | None:
         """Get guardrail config from request body."""
         try:
-            # Read body without consuming it
-            body_bytes = await request.body()
-            if not body_bytes:
+            body = await get_parsed_body(request)
+            if not body:
                 return None
-
-            body = json.loads(body_bytes.decode("utf-8"))
 
             # Check if user specified a logical guardrail ID in the request
             guardrail_identifier = body.get("guardrailConfig", {}).get("guardrailIdentifier")
-            if guardrail_identifier and re.match("^[a-zA-Z0-9_-]+$", guardrail_identifier):
+            if guardrail_identifier and _GUARDRAIL_ID_RE.match(guardrail_identifier):
                 guardrail_config = await self.guardrail_service.get_guardrail_config(
                     guardrail_identifier, shared_account_id
                 )
@@ -173,7 +171,7 @@ class GuardrailMiddleware(BaseHTTPMiddleware):
                         detail=f"Guardrail '{guardrail_identifier}' not found for account '{shared_account_id}'",
                     )
 
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             # Invalid JSON, let route handle it
             pass
         except Exception as e:
@@ -191,7 +189,7 @@ class GuardrailMiddleware(BaseHTTPMiddleware):
             guardrail_idx = path_parts.index("guardrail")
             if guardrail_idx + 1 < len(path_parts):
                 guardrail_identifier = path_parts[guardrail_idx + 1]
-                if re.match("^[a-zA-Z0-9_-]+$", guardrail_identifier):
+                if _GUARDRAIL_ID_RE.match(guardrail_identifier):
                     guardrail_config = await self.guardrail_service.get_guardrail_config(
                         guardrail_identifier, shared_account_id
                     )

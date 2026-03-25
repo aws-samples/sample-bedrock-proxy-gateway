@@ -10,7 +10,6 @@ from datetime import datetime
 from functools import partial
 
 import boto3
-import jwt
 from config import config
 from core.cache.memory_cache import get_cache, set_cache
 from opentelemetry import context, trace
@@ -99,7 +98,10 @@ class BedrockService:
         self.sts_role_session_name_suffix = config.app_hash
 
     async def get_authenticated_client(
-        self, jwt_token: str, account_id: str | None = None
+        self,
+        jwt_token: str,
+        account_id: str | None = None,
+        jwt_claims: dict | None = None,
     ) -> AsyncBedrockClient | None:
         """Get authenticated Bedrock client for JWT token with account routing.
 
@@ -107,6 +109,7 @@ class BedrockService:
         ----
             jwt_token: JWT token for authorization
             account_id: AWS account ID selected by rate limiting middleware
+            jwt_claims: Pre-validated JWT claims from auth middleware
 
         Returns:
         -------
@@ -122,7 +125,7 @@ class BedrockService:
             return None
 
         try:
-            claims = jwt.decode(jwt_token, options={"verify_signature": False})
+            claims = jwt_claims or {}
             client_id = claims.get("client_id") or claims.get("sub") or "unknown"
 
             # Use account selected by rate limiting middleware
