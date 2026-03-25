@@ -186,7 +186,12 @@ class BedrockUser(User):
             "bedrock-runtime",
             region_name=AWS_REGION,
             endpoint_url=API_URL,
-            config=Config(signature_version=UNSIGNED, client_cert=self.cert_config),
+            config=Config(
+                signature_version=UNSIGNED,
+                client_cert=self.cert_config,
+                read_timeout=30,
+                retries={"max_attempts": 1},
+            ),
         )
 
         def add_api_token(request, **kwargs):  # noqa: ARG001

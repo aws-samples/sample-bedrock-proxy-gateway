@@ -244,10 +244,11 @@ class RateLimitEngine:
         - Account limits: Per-account limits to prevent exceeding AWS quotas
 
         REDIS KEY STRUCTURE:
-        - Client TPM: "client1:claude-3-haiku:tpm" → shared token counter
-        - Client RPM: "client1:claude-3-haiku:rpm" → shared request counter
-        - Account TPM: "123456789012:claude-3-haiku:tpm" → account token counter
-        - Account RPM: "123456789012:claude-3-haiku:rpm" → account request counter
+        - Client TPM: "{client1:claude-3-haiku}:client:tpm" → shared token counter
+        - Client RPM: "{client1:claude-3-haiku}:client:rpm" → shared request counter
+        - Account TPM: "{client1:claude-3-haiku}:acct:123456789012:tpm" → account token counter
+        - Account RPM: "{client1:claude-3-haiku}:acct:123456789012:rpm" → account request counter
+        Hash tags {} ensure all keys land on the same Valkey Cluster slot.
 
         SINGLE REDIS CALL:
         All 4 limits checked atomically in one Lua script execution
@@ -277,8 +278,11 @@ class RateLimitEngine:
 
         try:
             # Check all limits in single Redis call
-            shared_rpm_key = f"{client_id}:{model_id}:rpm"
-            shared_tpm_key = f"{client_id}:{model_id}:tpm"
+            # Use hash tags {client_id:model_id} so all 4 keys land on the same
+            # Valkey Cluster slot, enabling atomic Lua script execution.
+            hash_tag = f"{{{client_id}:{model_id}}}"
+            shared_rpm_key = f"{hash_tag}:client:rpm"
+            shared_tpm_key = f"{hash_tag}:client:tpm"
 
             # Get account limits
             account_id = quota_config.accounts[0] if quota_config.accounts else None
@@ -286,8 +290,8 @@ class RateLimitEngine:
                 return (None, None, None, 0, 0)
 
             account_config = self.account_limits.get(account_id, {}).get(model_id, {})
-            account_rpm_key = f"{account_id}:{model_id}:rpm"
-            account_tpm_key = f"{account_id}:{model_id}:tpm"
+            account_rpm_key = f"{hash_tag}:acct:{account_id}:rpm"
+            account_tpm_key = f"{hash_tag}:acct:{account_id}:tpm"
             account_rpm_limit = account_config.get("rpm", RATELIMIT_UNLIMITED)
             account_tpm_limit = account_config.get("tpm", RATELIMIT_UNLIMITED)
 

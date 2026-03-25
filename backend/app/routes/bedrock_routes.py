@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from observability.metrics import MetricsCollector
 from services.bedrock_service import BedrockService
 from util.aws_error_response import create_aws_error_json, create_aws_http_exception
+from util.request_body import get_parsed_body
 
 
 def create_bedrock_router(bedrock_service: BedrockService, telemetry: dict) -> APIRouter:
@@ -98,7 +99,10 @@ def create_bedrock_router(bedrock_service: BedrockService, telemetry: dict) -> A
 
         # Attempt to create client using account selected by rate limiting
         # This enables multi-account cost distribution and quota isolation
-        bedrock_client = await bedrock_service.get_authenticated_client(auth_token, account_id)
+        jwt_claims = getattr(request.state, "jwt_claims", None)
+        bedrock_client = await bedrock_service.get_authenticated_client(
+            auth_token, account_id, jwt_claims
+        )
         if bedrock_client is None:
             logger.error("Failed to create bedrock client with provided token")
             metrics.record_auth_failure("invalid_token")
@@ -139,9 +143,7 @@ def create_bedrock_router(bedrock_service: BedrockService, telemetry: dict) -> A
                 if hasattr(request.state, "modified_body") and request.state.modified_body:
                     body = request.state.modified_body
                 else:
-                    # Parse JSON and decode base64 bytes
-                    body_bytes = await request.body()
-                    body = json.loads(body_bytes.decode("utf-8"))
+                    body = await get_parsed_body(request)
 
                 decode_base64_bytes(body)
                 body["modelId"] = model_id
@@ -271,9 +273,7 @@ def create_bedrock_router(bedrock_service: BedrockService, telemetry: dict) -> A
                 if hasattr(request.state, "modified_body") and request.state.modified_body:
                     body = request.state.modified_body
                 else:
-                    # Parse JSON and decode base64 bytes
-                    body_bytes = await request.body()
-                    body = json.loads(body_bytes.decode("utf-8"))
+                    body = await get_parsed_body(request)
 
                 decode_base64_bytes(body)
                 body["modelId"] = model_id
@@ -475,7 +475,7 @@ def create_bedrock_router(bedrock_service: BedrockService, telemetry: dict) -> A
         """
         try:
             async with metrics.track_request("invoke", model_id):
-                body = await request.json()
+                body = await get_parsed_body(request)
 
                 # Add guardrail config from headers if available
                 guardrail_config = getattr(request.state, "guardrail_config", None)
@@ -619,7 +619,7 @@ def create_bedrock_router(bedrock_service: BedrockService, telemetry: dict) -> A
         """
         try:
             async with metrics.track_stream_request("invoke-stream", model_id) as stream_ctx:
-                body = await request.json()
+                body = await get_parsed_body(request)
 
                 # Add guardrail config from headers if available
                 guardrail_config = getattr(request.state, "guardrail_config", None)
@@ -828,7 +828,7 @@ def create_bedrock_router(bedrock_service: BedrockService, telemetry: dict) -> A
         try:
             async with metrics.track_request("apply_guardrail", guardrail_identifier):
                 # Parse request body
-                body = await request.json()
+                body = await get_parsed_body(request)
 
                 # Log request information
                 logger.info(

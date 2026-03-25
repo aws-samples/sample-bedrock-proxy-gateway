@@ -43,6 +43,7 @@ PERFORMANCE OPTIMIZATIONS:
 
 import json
 import logging
+import re
 import time
 
 from config import config
@@ -62,8 +63,12 @@ from observability.rate_limit_metrics import (
 from observability.rate_limit_tracing import rate_limit_span
 from starlette.middleware.base import BaseHTTPMiddleware
 from util.constants import PUBLIC_PATHS, RATELIMIT_UNLIMITED
+from util.request_body import get_parsed_body
 
 logger = ContextLogger(logging.getLogger(__name__))
+
+# Pre-compiled regex for guardrail endpoint detection
+_GUARDRAIL_ENDPOINT_RE = re.compile(r"^/guardrail/[^/]+/version/[^/]+/apply$")
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -116,9 +121,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Guardrail endpoints follow the pattern:
         /guardrail/{guardrailIdentifier}/version/{guardrailVersion}/apply
         """
-        import re
-
-        return bool(re.match(r"^/guardrail/[^/]+/version/[^/]+/apply$", path))
+        return bool(_GUARDRAIL_ENDPOINT_RE.match(path))
 
     def _set_account_for_bypass(self, request: Request, is_guardrail: bool, model_id: str | None):
         """Set account for requests that bypass rate limiting."""
@@ -322,7 +325,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
                 # STEP 5: Token estimation
                 # Parse request body to estimate input token consumption
-                request_body = await request.json()
+                request_body = await get_parsed_body(request)
                 estimated_tokens = self.tokens.estimate(request_body, api_type)
 
                 # STEP 6: O(1) quota configuration lookup with 24h in-memory caching
@@ -632,7 +635,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # TPM limits are shared across all AWS accounts for this client-model
             # Only update Redis if TPM is limited (not unlimited)
             if tpm_limit != RATELIMIT_UNLIMITED:
-                shared_tpm_key = f"{client_id}:{model_id}:tpm"
+                shared_tpm_key = f"{{{client_id}:{model_id}}}:client:tpm"
                 await self.rate_limiter.limiter.check_and_consume(
                     shared_tpm_key, tpm_limit, actual_tokens
                 )

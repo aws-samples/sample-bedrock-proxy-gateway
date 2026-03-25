@@ -8,17 +8,12 @@ RUN apt-get update && \
     protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir 'uv==0.8.3'
-
 WORKDIR /app
-
-ENV UV_PROJECT_ENVIRONMENT="/venv"
 
 COPY pyproject.toml README.md ./
 
-RUN uv lock
-
-RUN uv sync --frozen --no-dev
+RUN python -m venv /venv && \
+    /venv/bin/pip install --no-cache-dir .
 
 FROM python:3.13.7-slim
 

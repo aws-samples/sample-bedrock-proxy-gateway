@@ -20,19 +20,15 @@ class TestBedrockService:
         self.mock_logger = Mock()
 
     @pytest.mark.asyncio
-    @patch("services.bedrock_service.jwt.decode")
-    async def test_get_authenticated_client_success(self, mock_jwt_decode):
+    async def test_get_authenticated_client_success(self):
         """Test successful authenticated client creation."""
-        mock_jwt_decode.return_value = {"client_id": "test-client"}
-
         service = BedrockService(self.mock_session, self.mock_logger)
 
         # Test with no account_id - should return None
-        result = await service.get_authenticated_client("test-token", None)
+        result = await service.get_authenticated_client(
+            "test-token", None, {"client_id": "test-client"}
+        )
         assert result is None
-
-        # JWT decode should not be called when no account_id provided
-        mock_jwt_decode.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_get_authenticated_client_no_token(self):
@@ -44,30 +40,25 @@ class TestBedrockService:
         assert result is None
 
     @pytest.mark.asyncio
-    @patch("services.bedrock_service.jwt.decode")
-    async def test_get_authenticated_client_no_account(self, mock_jwt_decode):
+    async def test_get_authenticated_client_no_account(self):
         """Test authenticated client creation with no available account."""
-        mock_jwt_decode.return_value = {"client_id": "test-client"}
-
         service = BedrockService(self.mock_session, self.mock_logger)
 
-        result = await service.get_authenticated_client("test-token", None)
+        result = await service.get_authenticated_client(
+            "test-token", None, {"client_id": "test-client"}
+        )
 
         assert result is None
 
     @pytest.mark.asyncio
-    @patch("services.bedrock_service.jwt.decode")
-    async def test_get_authenticated_client_jwt_error(self, mock_jwt_decode):
-        """Test authenticated client creation with JWT decode error."""
-        mock_jwt_decode.side_effect = Exception("JWT decode failed")
-
+    async def test_get_authenticated_client_missing_client_id(self):
+        """Test authenticated client creation with missing client_id in claims."""
         service = BedrockService(self.mock_session, self.mock_logger)
 
-        # Test with account_id to trigger JWT processing
-        result = await service.get_authenticated_client("invalid-token", "123456789012")
-
+        # Empty claims should use "unknown" as client_id and still attempt credential fetch
+        result = await service.get_authenticated_client("test-token", "123456789012", {})
+        # Will fail at _get_credentials since STS is not mocked
         assert result is None
-        self.mock_logger.error.assert_called()
 
     @pytest.mark.asyncio
     @patch("services.bedrock_service.get_cache")
@@ -253,26 +244,22 @@ class TestBedrockService:
             )
 
     @pytest.mark.asyncio
-    @patch("services.bedrock_service.jwt.decode")
-    async def test_get_authenticated_client_credentials_failure(self, mock_jwt_decode):
+    async def test_get_authenticated_client_credentials_failure(self):
         """Test authenticated client creation when credential retrieval fails."""
-        mock_jwt_decode.return_value = {"client_id": "test-client"}
-
         service = BedrockService(self.mock_session, self.mock_logger)
 
-        result = await service.get_authenticated_client("test-token", None)
+        result = await service.get_authenticated_client(
+            "test-token", None, {"client_id": "test-client"}
+        )
 
         assert result is None
 
     @pytest.mark.asyncio
-    @patch("services.bedrock_service.jwt.decode")
-    async def test_get_authenticated_client_missing_client_id(self, mock_jwt_decode):
+    async def test_get_authenticated_client_missing_client_id_v2(self):
         """Test authenticated client creation with missing client_id in JWT."""
-        mock_jwt_decode.return_value = {}  # No client_id
-
         service = BedrockService(self.mock_session, self.mock_logger)
 
-        result = await service.get_authenticated_client("test-token", None)
+        result = await service.get_authenticated_client("test-token", None, {})
 
         # Should return None since no account mapping is available
         assert result is None
