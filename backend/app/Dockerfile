@@ -1,6 +1,7 @@
-FROM python:3.13.7-slim AS builder
+FROM python:3.13-slim AS builder
 
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     gcc \
     g++ \
@@ -15,9 +16,10 @@ COPY pyproject.toml README.md ./
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir .
 
-FROM python:3.13.7-slim
+FROM python:3.13-slim
 
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
