@@ -123,8 +123,10 @@ version = "0.1.0"
 source = { editable = "backend/app" }
 dependencies = [
     { name = "boto3" },
+    { name = "defusedxml" },
     { name = "fastapi", extra = ["standard"] },
     { name = "gunicorn" },
+    { name = "httpx" },
     { name = "jsonschema" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp" },
@@ -149,8 +151,10 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.42.58" },
+    { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.133.1" },
     { name = "gunicorn", specifier = ">=25.1.0" },
+    { name = "httpx", specifier = ">=0.28.0" },
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "opentelemetry-api", specifier = ">=1.39.1" },
     { name = "opentelemetry-exporter-otlp", specifier = ">=1.39.1" },
