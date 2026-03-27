@@ -39,7 +39,7 @@ class TestBedrockCommon:
                 route_info.append((route.path, list(route.methods)))
 
         expected_routes = [
-            ("/model/{model_id}/converse", ["POST"]),
+            ("/model/{model_id}/converse-stream", ["POST"]),
             ("/model/{model_id}/converse-stream", ["POST"]),
             ("/model/{model_id}/invoke", ["POST"]),
             ("/model/{model_id}/invoke-with-response-stream", ["POST"]),
@@ -186,7 +186,7 @@ class TestBedrockCommon:
         # Find any route to get the dependency
         converse_route = None
         for route in self.router.routes:
-            if hasattr(route, "path") and route.path == "/model/{model_id}/converse":
+            if hasattr(route, "path") and route.path == "/model/{model_id}/converse-stream":
                 converse_route = route
                 break
 
@@ -213,7 +213,7 @@ class TestBedrockCommon:
         """Test get_bedrock_client with invalid token."""
         converse_route = None
         for route in self.router.routes:
-            if hasattr(route, "path") and route.path == "/model/{model_id}/converse":
+            if hasattr(route, "path") and route.path == "/model/{model_id}/converse-stream":
                 converse_route = route
                 break
 
@@ -240,7 +240,7 @@ class TestBedrockCommon:
         """Test successful bedrock client creation."""
         converse_route = None
         for route in self.router.routes:
-            if hasattr(route, "path") and route.path == "/model/{model_id}/converse":
+            if hasattr(route, "path") and route.path == "/model/{model_id}/converse-stream":
                 converse_route = route
                 break
 
@@ -263,7 +263,7 @@ class TestBedrockCommon:
         """Test get_bedrock_client with rate limiting context."""
         converse_route = None
         for route in self.router.routes:
-            if hasattr(route, "path") and route.path == "/model/{model_id}/converse":
+            if hasattr(route, "path") and route.path == "/model/{model_id}/converse-stream":
                 converse_route = route
                 break
 
@@ -291,7 +291,7 @@ class TestBedrockCommon:
         """Test get_bedrock_client with invalid rate context."""
         converse_route = None
         for route in self.router.routes:
-            if hasattr(route, "path") and route.path == "/model/{model_id}/converse":
+            if hasattr(route, "path") and route.path == "/model/{model_id}/converse-stream":
                 converse_route = route
                 break
 
@@ -316,7 +316,7 @@ class TestBedrockCommon:
 
     def test_router_route_count(self):
         """Test that router has the expected number of routes."""
-        assert len(self.router.routes) == 5
+        assert len(self.router.routes) == 4  # converse moved to httpx router
 
     def test_decode_base64_bytes_with_invalid_base64(self):
         """Test decode_base64_bytes with invalid base64 data."""
