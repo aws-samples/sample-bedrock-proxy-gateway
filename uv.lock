@@ -145,6 +145,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "uvicorn" },
+    { name = "uvloop" },
     { name = "valkey-glide" },
 ]
 
@@ -173,6 +174,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "uvicorn", specifier = ">=0.41.0" },
+    { name = "uvloop", specifier = ">=0.21.0" },
     { name = "valkey-glide", specifier = ">=2.2.7" },
 ]
 

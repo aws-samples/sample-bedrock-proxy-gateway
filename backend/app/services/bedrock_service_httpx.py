@@ -199,14 +199,155 @@ class BedrockHttpxService:
         -------
             Bedrock converse API response dict
         """
-        url = f"{self.bedrock_endpoint}/model/{model_id}/converse"
-        body_bytes = orjson.dumps(body)
+        url, body_bytes, headers = self._signed_bedrock_request(model_id, "converse", body, creds)
+        client = _get_httpx_client()
+        resp = await client.post(url, content=body_bytes, headers=headers)
+        resp.raise_for_status()
+        return orjson.loads(resp.content)
 
+    def _signed_bedrock_request(
+        self, model_id: str, operation: str, body: dict, creds: dict
+    ) -> tuple[str, bytes, dict]:
+        """Build a signed Bedrock request.
+
+        Returns
+        -------
+            Tuple of (url, body_bytes, signed_headers)
+        """
+        url = f"{self.bedrock_endpoint}/model/{model_id}/{operation}"
+        body_bytes = orjson.dumps(body)
         sign_headers = {"Content-Type": "application/json"}
-        # VPC endpoints require the regional Bedrock Host header for SigV4
+        if config.bedrock_runtime_vpc_endpoint_dns:
+            sign_headers["Host"] = f"bedrock-runtime.{self.aws_region}.amazonaws.com"
+        headers = self._sign_request("POST", url, sign_headers, body_bytes, creds)
+        return url, body_bytes, headers
+
+    async def converse_stream(self, model_id: str, body: dict, creds: dict):
+        """Call Bedrock ConverseStream API via httpx with SigV4 signing.
+
+        Returns an httpx async stream context manager yielding raw EventStream bytes.
+
+        Args:
+        ----
+            model_id: Bedrock model identifier
+            body: Request body dict
+            creds: AWS credentials dict from get_credentials
+
+        Returns:
+        -------
+            httpx async stream context manager
+        """
+        url, body_bytes, headers = self._signed_bedrock_request(
+            model_id, "converse-stream", body, creds
+        )
+        return _get_httpx_client().stream("POST", url, content=body_bytes, headers=headers)
+
+    async def invoke_model(
+        self, model_id: str, body_bytes: bytes, creds: dict, guardrail_params: dict | None = None
+    ) -> bytes:
+        """Call Bedrock InvokeModel API via httpx with SigV4 signing.
+
+        Args:
+        ----
+            model_id: Bedrock model identifier
+            body_bytes: Raw request body bytes
+            creds: AWS credentials dict from get_credentials
+            guardrail_params: Optional guardrail identifier/version/trace params
+
+        Returns:
+        -------
+            Raw response body bytes
+        """
+        url = f"{self.bedrock_endpoint}/model/{model_id}/invoke"
+        sign_headers: dict[str, str] = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        if guardrail_params:
+            if guardrail_params.get("guardrailIdentifier"):
+                sign_headers["X-Amzn-Bedrock-GuardrailIdentifier"] = guardrail_params[
+                    "guardrailIdentifier"
+                ]
+            if guardrail_params.get("guardrailVersion"):
+                sign_headers["X-Amzn-Bedrock-GuardrailVersion"] = guardrail_params[
+                    "guardrailVersion"
+                ]
+            if guardrail_params.get("trace"):
+                sign_headers["X-Amzn-Bedrock-Trace"] = guardrail_params["trace"]
         if config.bedrock_runtime_vpc_endpoint_dns:
             sign_headers["Host"] = f"bedrock-runtime.{self.aws_region}.amazonaws.com"
 
+        headers = self._sign_request("POST", url, sign_headers, body_bytes, creds)
+        client = _get_httpx_client()
+        resp = await client.post(url, content=body_bytes, headers=headers)
+        resp.raise_for_status()
+        return resp.content
+
+    async def invoke_model_stream(
+        self, model_id: str, body_bytes: bytes, creds: dict, guardrail_params: dict | None = None
+    ):
+        """Call Bedrock InvokeModelWithResponseStream API via httpx with SigV4 signing.
+
+        Returns an httpx async stream context manager yielding raw EventStream bytes.
+
+        Args:
+        ----
+            model_id: Bedrock model identifier
+            body_bytes: Raw request body bytes
+            creds: AWS credentials dict from get_credentials
+            guardrail_params: Optional guardrail identifier/version/trace params
+
+        Returns:
+        -------
+            httpx async stream context manager
+        """
+        url = f"{self.bedrock_endpoint}/model/{model_id}/invoke-with-response-stream"
+        sign_headers: dict[str, str] = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        if guardrail_params:
+            if guardrail_params.get("guardrailIdentifier"):
+                sign_headers["X-Amzn-Bedrock-GuardrailIdentifier"] = guardrail_params[
+                    "guardrailIdentifier"
+                ]
+            if guardrail_params.get("guardrailVersion"):
+                sign_headers["X-Amzn-Bedrock-GuardrailVersion"] = guardrail_params[
+                    "guardrailVersion"
+                ]
+            if guardrail_params.get("trace"):
+                sign_headers["X-Amzn-Bedrock-Trace"] = guardrail_params["trace"]
+        if config.bedrock_runtime_vpc_endpoint_dns:
+            sign_headers["Host"] = f"bedrock-runtime.{self.aws_region}.amazonaws.com"
+
+        headers = self._sign_request("POST", url, sign_headers, body_bytes, creds)
+        return _get_httpx_client().stream("POST", url, content=body_bytes, headers=headers)
+
+    async def apply_guardrail(
+        self,
+        guardrail_id: str,
+        guardrail_version: str,
+        body: dict,
+        creds: dict,
+    ) -> dict:
+        """Call Bedrock ApplyGuardrail API via httpx with SigV4 signing.
+
+        Args:
+        ----
+            guardrail_id: Actual guardrail identifier
+            guardrail_version: Guardrail version
+            body: Request body dict (content, source, outputScope, etc.)
+            creds: AWS credentials dict from get_credentials
+
+        Returns:
+        -------
+            Bedrock apply guardrail API response dict
+        """
+        url = f"{self.bedrock_endpoint}/guardrail/{guardrail_id}/version/{guardrail_version}/apply"
+        body_bytes = orjson.dumps(body)
+        sign_headers = {"Content-Type": "application/json"}
+        if config.bedrock_runtime_vpc_endpoint_dns:
+            sign_headers["Host"] = f"bedrock-runtime.{self.aws_region}.amazonaws.com"
         headers = self._sign_request("POST", url, sign_headers, body_bytes, creds)
 
         client = _get_httpx_client()
