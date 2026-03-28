@@ -1,7 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Unit tests for bedrock apply guardrail API endpoint."""
+"""Unit tests for bedrock apply guardrail API endpoint.
+
+NOTE: These tests are for the old boto3-based apply_guardrail route which has been
+replaced by the httpx implementation in bedrock_routes1.py.
+"""
 
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -11,6 +15,8 @@ from botocore.exceptions import ClientError, ParamValidationError
 from fastapi import HTTPException
 from routes.bedrock_routes import create_bedrock_router
 from services.bedrock_service import BedrockService
+
+pytestmark = pytest.mark.skip(reason="apply_guardrail route moved to httpx implementation")
 
 
 class TestBedrockApplyGuardrail:

@@ -43,4 +43,4 @@ EXPOSE 8000
 HEALTHCHECK --start-period=60s --retries=3 --interval=30s --timeout=5s \
     CMD ["curl", "-f", "http://localhost:8000/health"]
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 --workers $(($(nproc) * 4))"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 --loop uvloop --workers $(($(nproc) * 2 + 1))"]
