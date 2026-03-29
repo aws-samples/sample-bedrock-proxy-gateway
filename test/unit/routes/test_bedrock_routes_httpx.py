@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Unit tests for bedrock_routes1 (httpx) endpoints."""
+"""Unit tests for bedrock_routes (httpx) endpoints."""
 
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -10,7 +10,7 @@ import orjson
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from routes.bedrock_routes1 import create_bedrock_httpx_router
+from routes.bedrock_routes import create_bedrock_httpx_router
 from services.bedrock_service_httpx import BedrockHttpxService
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -83,7 +83,7 @@ def _req(client, url, body=None, **state_overrides):
     app.add_middleware(_MW)
 
     with patch(
-        "routes.bedrock_routes1.get_parsed_body", new_callable=AsyncMock, return_value=body or {}
+        "routes.bedrock_routes.get_parsed_body", new_callable=AsyncMock, return_value=body or {}
     ):
         return TestClient(app).post(url, json=body or {}, headers={"Authorization": "Bearer jwt"})
 

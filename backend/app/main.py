@@ -10,7 +10,7 @@ from middleware.guardrail import GuardrailMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.trace import TraceMiddleware
 from observability.telemetry import instrument_app, setup_telemetry
-from routes.bedrock_routes1 import create_bedrock_httpx_router
+from routes.bedrock_routes import create_bedrock_httpx_router
 from routes.general_routes import setup_general_routes
 from routes.health import health_router
 from routes.operational_routes import setup_operational_routes
