@@ -49,6 +49,7 @@
 | <a name="input_service_name"></a> [service\_name](#input\_service\_name) | n/a | `string` | `"bedrock-proxy-gateway"` | no |
 | <a name="input_shared_account_ids"></a> [shared\_account\_ids](#input\_shared\_account\_ids) | n/a | `string` | n/a | yes |
 | <a name="input_shared_account_profile"></a> [shared\_account\_profile](#input\_shared\_account\_profile) | n/a | `string` | `"default"` | no |
+| <a name="input_waf_rate_limit"></a> [waf\_rate\_limit](#input\_waf\_rate\_limit) | WAF rate limit (requests per 5-minute window per IP) | `number` | `2000` | no |
 
 ## Outputs
 

@@ -44,6 +44,7 @@ No resources.
 | <a name="input_oauth_jwks_url"></a> [oauth\_jwks\_url](#input\_oauth\_jwks\_url) | OAuth JWKS URL for JWT token validation (e.g., https://<tenant>.auth0.com/.well-known/jwks.json) | `string` | n/a | yes |
 | <a name="input_oidc_role_name"></a> [oidc\_role\_name](#input\_oidc\_role\_name) | Name of the IAM role for the OIDC provider | `string` | n/a | yes |
 | <a name="input_shared_account_ids"></a> [shared\_account\_ids](#input\_shared\_account\_ids) | List of shared account IDs for resource access | `string` | n/a | yes |
+| <a name="input_waf_rate_limit"></a> [waf\_rate\_limit](#input\_waf\_rate\_limit) | WAF rate limit (requests per 5-minute window per IP) | `number` | `2000` | no |
 
 ## Outputs
 
