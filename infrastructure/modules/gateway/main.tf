@@ -16,10 +16,11 @@ module "networking" {
 }
 
 module "waf" {
-  source      = "./waf"
-  common      = var.common
-  common_tags = var.common_tags
-  alb_arn     = module.networking.ecs_alb_arn
+  source         = "./waf"
+  common         = var.common
+  common_tags    = var.common_tags
+  alb_arn        = module.networking.ecs_alb_arn
+  waf_rate_limit = var.waf_rate_limit
 }
 
 module "observability" {

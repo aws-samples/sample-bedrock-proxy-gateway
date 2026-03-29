@@ -92,3 +92,9 @@ variable "jwt_allowed_scopes" {
   type        = string
   description = "Comma-separated list of allowed JWT scopes (e.g., bedrockproxygateway:read,bedrockproxygateway:invoke,bedrockproxygateway:admin)"
 }
+
+variable "waf_rate_limit" {
+  description = "WAF rate limit (requests per 5-minute window per IP)"
+  type        = number
+  default     = 2000
+}

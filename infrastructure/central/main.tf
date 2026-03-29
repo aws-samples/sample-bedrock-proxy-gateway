@@ -18,6 +18,7 @@ module "central_account" {
   oauth_issuer              = var.oauth_issuer
   jwt_audience              = var.jwt_audience
   jwt_allowed_scopes        = var.jwt_allowed_scopes
+  waf_rate_limit            = var.waf_rate_limit
 }
 
 # Write VPC endpoint IDs to SSM so shared accounts can read them
