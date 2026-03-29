@@ -3,7 +3,6 @@
 
 """Bedrock FastAPI proxy module."""
 
-import boto3
 from config import config
 from fastapi import FastAPI, HTTPException
 from middleware.auth import AuthMiddleware
@@ -11,12 +10,10 @@ from middleware.guardrail import GuardrailMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.trace import TraceMiddleware
 from observability.telemetry import instrument_app, setup_telemetry
-from routes.bedrock_routes import create_bedrock_router
 from routes.bedrock_routes1 import create_bedrock_httpx_router
 from routes.general_routes import setup_general_routes
 from routes.health import health_router
 from routes.operational_routes import setup_operational_routes
-from services.bedrock_service import BedrockService
 from services.bedrock_service_httpx import BedrockHttpxService
 from services.guardrail_service import GuardrailService
 from util.exception_handler import create_global_exception_handler
@@ -38,17 +35,13 @@ def create_app() -> FastAPI:
     telemetry = setup_telemetry()
     logger = telemetry["logger"]
 
-    # Initialize dependencies
-    session = boto3.Session()
-    bedrock_service = BedrockService(session, logger)
-
     # Initialize guardrail service
     guardrail_service = GuardrailService()
 
     # Setup middleware (order matters - middleware is executed in LIFO order)
     # TraceMiddleware is registered first so it will execute last, after RateLimitMiddleware
     # This ensures client name is extracted before tracing
-    # Execution order: AuthMiddleware -> RateLimitMiddleware -> TraceMiddleware
+    # Execution order: AuthMiddleware -> RateLimitMiddleware -> GuardrailMiddleware -> TraceMiddleware
     app.add_middleware(TraceMiddleware)
     app.add_middleware(GuardrailMiddleware, guardrail_service=guardrail_service)
     app.add_middleware(RateLimitMiddleware)
@@ -59,9 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(setup_general_routes())
     app.include_router(setup_operational_routes())
 
-    app.include_router(create_bedrock_router(bedrock_service, telemetry))
-
-    # Phase 3: httpx-based converse endpoint (replaces boto3 converse route)
+    # Bedrock API routes (httpx + SigV4)
     bedrock_httpx_service = BedrockHttpxService(logger)
     app.include_router(create_bedrock_httpx_router(bedrock_httpx_service, telemetry))
 
