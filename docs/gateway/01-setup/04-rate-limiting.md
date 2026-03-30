@@ -271,6 +271,50 @@ account_limits:
 
 ## How quota enforcement works
 
+### Fixed window strategy
+
+The gateway uses a **fixed window** algorithm. Time is divided into 1-minute buckets aligned to clock boundaries:
+
+```mermaid
+gantt
+    title Fixed Window Rate Limiting (1-minute windows)
+    dateFormat mm:ss
+    axisFormat %M:%S
+
+    section RPM (100 limit)
+        80 reqs used         :done, r1, 30:00, 30:59
+        45 reqs used         :done, r2, 31:00, 31:59
+        100 reqs (limit hit) :crit, r3, 32:00, 32:59
+        Counter resets to 0  :active, r4, 33:00, 33:59
+
+    section TPM (50k limit)
+        32k tokens used      :done, t1, 30:00, 30:59
+        50k tokens (limit)   :crit, t2, 31:00, 31:59
+        12k tokens used      :done, t3, 32:00, 32:59
+        Counter resets to 0  :active, t4, 33:00, 33:59
+```
+
+Both RPM and TPM use the same fixed window mechanism with separate counters. A request is rejected if **either** limit is exceeded.
+
+At the start of each minute, all counters reset to zero. Each request increments the counter for the current window. If the counter exceeds the configured limit, the request is rejected with a 429 error.
+
+**Why fixed window?** It provides O(1) performance and predictable memory usage in Valkey — each rate limit key is a single integer with a 60-second TTL.
+
+**Known limitation:** Because counters reset at minute boundaries, a client could theoretically consume up to 2x their limit across a window boundary (for example, 100 requests at 10:30:59 and 100 more at 10:31:00). Amazon Bedrock's own quotas provide a secondary safeguard against this.
+
+**No burst capacity:** Client quotas are hard limits. If a client exhausts their quota, requests are rejected even if overall account capacity is available from unused quotas of other clients. This is by design — the purpose of rate limiting is to prevent noisy neighbors from monopolizing shared Bedrock capacity. To give a client more capacity, increase their quota in the YAML configuration.
+
+### Atomic multi-limit check
+
+The gateway checks all four limits in a single atomic Lua script execution in Valkey:
+
+1. Client RPM (requests per minute)
+2. Client TPM (tokens per minute)
+3. Account RPM
+4. Account TPM
+
+Counters are only incremented if **all** checks pass. This prevents partial consumption where a request passes the RPM check but fails the TPM check.
+
 ### Request-level limiting
 
 The gateway checks request quotas before sending to Amazon Bedrock:
@@ -350,17 +394,17 @@ To update rate limits:
 
 ```bash
 # Edit configuration
-vim backend/app/core/rate_limit/config/prod.yaml
+vim backend/app/core/rate_limit/config/dev.yaml
 
 # Rebuild and push image
 cd backend
-docker build -t bedrock-gateway:latest .
-docker push <ecr-repo>/bedrock-gateway:latest
+docker build -t bedrock-proxy-gateway:latest .
+docker push <ecr-repo>/bedrock-proxy-gateway:latest
 
 # Force ECS deployment
 aws ecs update-service \
-  --cluster bedrock-gateway-prod \
-  --service bedrock-gateway-service \
+  --cluster bedrock-proxy-gateway-dev \
+  --service bedrock-proxy-gateway-service \
   --force-new-deployment
 ```
 
@@ -381,7 +425,7 @@ The gateway publishes rate limiting metrics to CloudWatch:
 View current quota usage in logs:
 
 ```bash
-aws logs tail /aws/ecs/bedrock-gateway-prod --follow --filter-pattern "quota"
+aws logs tail /aws/ecs/bedrock-proxy-gateway-dev --follow --filter-pattern "quota"
 ```
 
 ### Set up alarms
@@ -390,7 +434,7 @@ Create CloudWatch alarms for high quota utilization:
 
 ```bash
 aws cloudwatch put-metric-alarm \
-  --alarm-name bedrock-gateway-high-rate-limit-hits \
+  --alarm-name bedrock-proxy-gateway-high-rate-limit-hits \
   --metric-name RateLimitHits \
   --namespace BedrockGateway \
   --statistic Sum \

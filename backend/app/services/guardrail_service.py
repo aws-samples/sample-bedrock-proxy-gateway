@@ -49,7 +49,7 @@ class GuardrailService:
         self._redis_ttl = int(self._refresh_interval * 2)  # 10 min
         self._redis_key = f"guardrails:{config.environment}:consolidated-config"
         self._ssm_parameter = (
-            f"bedrock-gateway/{config.environment}/guardrails/consolidated-config"
+            f"bedrock-proxy-gateway/{config.environment}/guardrails/consolidated-config"
         )
         self._refresh_lock = asyncio.Lock()
 

@@ -65,7 +65,7 @@ def setup_telemetry():
         return {
             "tracer": trace.NoOpTracer(),
             "meter": metrics.NoOpMeter("disabled"),
-            "logger": ContextLogger(logging.getLogger("bedrock-gateway")),
+            "logger": ContextLogger(logging.getLogger("bedrock-proxy-gateway")),
         }
 
     # Initialize valkey-glide telemetry
