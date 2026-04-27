@@ -7,6 +7,7 @@ import contextlib
 from typing import Any
 
 import httpx
+import orjson
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from observability.metrics import MetricsCollector
@@ -351,7 +352,6 @@ def create_bedrock_httpx_router(
                 },
             )
 
-            import orjson
 
             body_bytes = orjson.dumps(body)
 
@@ -460,7 +460,6 @@ def create_bedrock_httpx_router(
                 },
             )
 
-            import orjson
 
             body_bytes = orjson.dumps(body)
 

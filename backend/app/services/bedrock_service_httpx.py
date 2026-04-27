@@ -354,3 +354,11 @@ class BedrockHttpxService:
         resp = await client.post(url, content=body_bytes, headers=headers)
         resp.raise_for_status()
         return orjson.loads(resp.content)
+
+
+async def close_httpx_client() -> None:
+    """Close the shared httpx client on application shutdown."""
+    global _httpx_client
+    if _httpx_client is not None:
+        await _httpx_client.aclose()
+        _httpx_client = None

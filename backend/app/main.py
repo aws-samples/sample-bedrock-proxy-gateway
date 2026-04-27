@@ -3,6 +3,8 @@
 
 """Bedrock FastAPI proxy module."""
 
+from contextlib import asynccontextmanager
+
 from config import config
 from fastapi import FastAPI, HTTPException
 from middleware.auth import AuthMiddleware
@@ -14,9 +16,16 @@ from routes.bedrock_routes import create_bedrock_httpx_router
 from routes.general_routes import setup_general_routes
 from routes.health import health_router
 from routes.operational_routes import setup_operational_routes
-from services.bedrock_service_httpx import BedrockHttpxService
+from services.bedrock_service_httpx import BedrockHttpxService, close_httpx_client
 from services.guardrail_service import GuardrailService
 from util.exception_handler import create_global_exception_handler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan: initialize and close shared resources."""
+    yield
+    await close_httpx_client()
 
 
 def create_app() -> FastAPI:
@@ -29,6 +38,7 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        lifespan=lifespan,
     )
 
     # Setup telemetry first
