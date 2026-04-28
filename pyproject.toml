@@ -74,7 +74,7 @@ dev = [
     "types-requests>=2.32.4.20250809",
     # Integration testing
     "langchain-aws>=0.2.31",
-    "langgraph>=0.6.6",
+    "langgraph>=1.1.10",
     "litellm>=1.83.0",
     "strands-agents>=1.0.1",
     "pillow>=12.2.0",
