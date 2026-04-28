@@ -157,12 +157,16 @@ class BedrockHttpxService:
                 else None
             )
 
-            return {
+            parsed = {
                 "AccessKeyId": creds_el.findtext("sts:AccessKeyId", "", ns),
                 "SecretAccessKey": creds_el.findtext("sts:SecretAccessKey", "", ns),
                 "SessionToken": creds_el.findtext("sts:SessionToken", "", ns),
                 "Expiration": expiration,
             }
+            if not all(parsed[k] for k in ("AccessKeyId", "SecretAccessKey", "SessionToken")):
+                self.logger.error("STS response missing required credential fields")
+                return None
+            return parsed
         except ET.ParseError as e:
             self.logger.error(f"Failed to parse STS XML: {e}")
             return None

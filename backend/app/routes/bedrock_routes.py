@@ -178,6 +178,14 @@ def create_bedrock_httpx_router(
                 error_message=error_msg,
                 request_id="bedrock-client-error",
             ) from e
+        except httpx.RequestError as e:
+            logger.warning(f"Network error during converse for model {model_id}: {e}")
+            raise create_aws_http_exception(
+                status_code=503,
+                error_code="ServiceUnavailable",
+                error_message=f"Bedrock request failed: {type(e).__name__}",
+                request_id="bedrock-network-error",
+            ) from e
         except HTTPException:
             raise
         except Exception as e:
@@ -295,6 +303,14 @@ def create_bedrock_httpx_router(
                     },
                 )
 
+        except httpx.RequestError as e:
+            logger.warning(f"Network error during converse-stream for model {model_id}: {e}")
+            raise create_aws_http_exception(
+                status_code=503,
+                error_code="ServiceUnavailable",
+                error_message=f"Bedrock request failed: {type(e).__name__}",
+                request_id="bedrock-network-error",
+            ) from e
         except HTTPException:
             raise
         except Exception as e:
@@ -402,6 +418,14 @@ def create_bedrock_httpx_router(
                 error_code=error_code,
                 error_message=error_msg,
                 request_id="invoke-bedrock-error",
+            ) from e
+        except httpx.RequestError as e:
+            logger.warning(f"Network error during invoke for model {model_id}: {e}")
+            raise create_aws_http_exception(
+                status_code=503,
+                error_code="ServiceUnavailable",
+                error_message=f"Bedrock request failed: {type(e).__name__}",
+                request_id="bedrock-network-error",
             ) from e
         except HTTPException:
             raise
@@ -531,6 +555,14 @@ def create_bedrock_httpx_router(
                     },
                 )
 
+        except httpx.RequestError as e:
+            logger.warning(f"Network error during invoke-stream for model {model_id}: {e}")
+            raise create_aws_http_exception(
+                status_code=503,
+                error_code="ServiceUnavailable",
+                error_message=f"Bedrock request failed: {type(e).__name__}",
+                request_id="bedrock-network-error",
+            ) from e
         except HTTPException:
             raise
         except Exception as e:
@@ -660,6 +692,14 @@ def create_bedrock_httpx_router(
                 error_code=error_code,
                 error_message=error_msg,
                 request_id="apply-guardrail-bedrock-error",
+            ) from e
+        except httpx.RequestError as e:
+            logger.warning(f"Network error during apply guardrail {guardrail_identifier}: {e}")
+            raise create_aws_http_exception(
+                status_code=503,
+                error_code="ServiceUnavailable",
+                error_message=f"Bedrock request failed: {type(e).__name__}",
+                request_id="bedrock-network-error",
             ) from e
         except HTTPException:
             raise
