@@ -20,17 +20,14 @@ from opentelemetry import trace
 tracer = trace.get_tracer(__name__)
 
 # Shared httpx client — connection pooling across all requests
-_httpx_client: httpx.AsyncClient | None = None
+_httpx_client: httpx.AsyncClient = httpx.AsyncClient(
+    timeout=httpx.Timeout(connect=5.0, read=90.0, write=10.0, pool=5.0),
+    limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+)
 
 
 def _get_httpx_client() -> httpx.AsyncClient:
-    """Get or create the shared httpx client with connection pooling."""
-    global _httpx_client
-    if _httpx_client is None:
-        _httpx_client = httpx.AsyncClient(
-            timeout=httpx.Timeout(connect=5.0, read=90.0, write=10.0, pool=5.0),
-            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
-        )
+    """Get the shared httpx client."""
     return _httpx_client
 
 
@@ -358,7 +355,4 @@ class BedrockHttpxService:
 
 async def close_httpx_client() -> None:
     """Close the shared httpx client on application shutdown."""
-    global _httpx_client
-    if _httpx_client is not None:
-        await _httpx_client.aclose()
-        _httpx_client = None
+    await _httpx_client.aclose()

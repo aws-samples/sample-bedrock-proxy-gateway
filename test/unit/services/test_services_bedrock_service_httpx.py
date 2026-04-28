@@ -13,12 +13,12 @@ from services.bedrock_service_httpx import BedrockHttpxService, _get_httpx_clien
 
 @pytest.fixture(autouse=True)
 def _reset_httpx_client():
-    """Reset the module-level httpx client between tests."""
+    """Restore the module-level httpx client after each test."""
     import services.bedrock_service_httpx as mod
 
-    mod._httpx_client = None
+    original = mod._httpx_client
     yield
-    mod._httpx_client = None
+    mod._httpx_client = original
 
 
 @pytest.fixture
