@@ -90,6 +90,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
             # Set user context for logging and tracing
             set_user_context(client_info["client_id"], None, client_info.get("scope"))
+            request.state.jwt_claims = claims
 
             logger.debug(
                 f"Authenticated client: {client_info['client_id']} with scope: {client_info['scope']}"

@@ -60,7 +60,7 @@ asyncio_mode = "auto"
 [dependency-groups]
 dev = [
     # Testing tools
-    "pytest>=8.4.1",
+    "pytest>=9.0.3",
     "pytest-cov>=6.2.1",
     "pytest-asyncio>=1.1.0",
     "pytest-mock>=3.14.1",
@@ -74,11 +74,11 @@ dev = [
     "types-requests>=2.32.4.20250809",
     # Integration testing
     "langchain-aws>=0.2.31",
-    "langgraph>=0.6.6",
-    "litellm>=1.76.1",
+    "langgraph>=1.1.10",
+    "litellm>=1.83.0",
     "strands-agents>=1.0.1",
-    "pillow>=11.3.0",
-    "python-dotenv>=1.1.1",
+    "pillow>=12.2.0",
+    "python-dotenv>=1.2.2",
     "matplotlib>=3.10.6",
     "scikit-learn>=1.7.1",
     "pandas>=2.3.2",

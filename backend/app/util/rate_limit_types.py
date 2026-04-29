@@ -3,10 +3,10 @@
 
 """Rate limit types and enums."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class RateLimitReason(str, Enum):
+class RateLimitReason(StrEnum):
     """Rate limit exceeded reason."""
 
     RPM = "rpm"
@@ -15,7 +15,7 @@ class RateLimitReason(str, Enum):
     ACCOUNT_TPM = "account_tpm"
 
 
-class RateLimitScope(str, Enum):
+class RateLimitScope(StrEnum):
     """Rate limit scope level."""
 
     CLIENT = "client"

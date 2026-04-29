@@ -814,7 +814,7 @@ class TestRateLimitMiddleware:
 
         middleware.tokens.extract.assert_called_once()
         middleware.rate_limiter.limiter.check_and_consume.assert_called_once_with(
-            "client:model:tpm", 1000, 250
+            "{client:model}:client:tpm", 1000, 250
         )
         mock_record.assert_called_once_with("client", "model", 250, "converse")
 
@@ -1035,7 +1035,7 @@ class TestRateLimitMiddleware:
 
         request = Mock(spec=Request)
         request.url.path = "/model/test-model/converse"
-        request.json = AsyncMock(return_value={"messages": []})
+        request.body = AsyncMock(return_value=b'{"messages": []}')
 
         call_next = AsyncMock()
 
@@ -1074,7 +1074,7 @@ class TestRateLimitMiddleware:
 
         request = Mock(spec=Request)
         request.url.path = "/model/test-model/converse"
-        request.json = AsyncMock(return_value={"messages": []})
+        request.body = AsyncMock(return_value=b'{"messages": []}')
 
         call_next = AsyncMock()
 
@@ -1116,7 +1116,7 @@ class TestRateLimitMiddleware:
 
         request = Mock(spec=Request)
         request.url.path = "/model/test-model/converse"
-        request.json = AsyncMock(return_value={"messages": []})
+        request.body = AsyncMock(return_value=b'{"messages": []}')
         from types import SimpleNamespace
 
         request.state = SimpleNamespace()

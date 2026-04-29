@@ -21,3 +21,9 @@ variable "alb_arn" {
   description = "ARN of the ALB to associate with WAF"
   type        = string
 }
+
+variable "waf_rate_limit" {
+  description = "WAF rate limit (requests per 5-minute window per IP)"
+  type        = number
+  default     = 2000
+}

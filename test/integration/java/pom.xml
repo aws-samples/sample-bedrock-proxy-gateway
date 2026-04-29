@@ -12,7 +12,7 @@
   <properties>
       <maven.compiler.source>17</maven.compiler.source>
       <maven.compiler.target>17</maven.compiler.target>
-      <spring-ai.version>1.0.3</spring-ai.version>
+      <spring-ai.version>1.0.5</spring-ai.version>
   </properties>
 
   <!-- Use the AWS SDK BOM so all modules stay on the same version -->

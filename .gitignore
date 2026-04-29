@@ -167,6 +167,8 @@ ecs-params.yml
 .env
 .env.*
 !.env.template
+.envrc
+.kiro/
 .venv
 .vscode
 client_key.pem

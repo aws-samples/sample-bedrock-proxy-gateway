@@ -99,6 +99,12 @@ variable "gw_api_image_tag" {
   default = ""
 }
 
+variable "waf_rate_limit" {
+  description = "WAF rate limit (requests per 5-minute window per IP)"
+  type        = number
+  default     = 2000
+}
+
 variable "additional_tags" {
   type    = map(string)
   default = {}
