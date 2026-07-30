@@ -9,6 +9,7 @@ from observability.rate_limit_metrics import (
     record_rate_limit_exceeded,
     record_rate_limit_request,
     record_redis_failure,
+    record_stream_reconciliation_delta,
     record_tokens_consumed,
 )
 
@@ -101,3 +102,31 @@ class TestRateLimitMetrics:
             record_tokens_consumed("client-test", "model-test", tokens, api_type)
 
         assert mock_counter.add.call_count == 3
+
+    @patch("observability.rate_limit_metrics.stream_reconciliation_delta")
+    def test_record_stream_reconciliation_delta(self, mock_histogram):
+        """Test record_stream_reconciliation_delta histogram record."""
+        record_stream_reconciliation_delta("client-abc", "claude-model", "converse-stream", 42)
+
+        mock_histogram.record.assert_called_once_with(
+            42,
+            {
+                "client_id": "client-abc",
+                "model_id": "claude-model",
+                "endpoint": "converse-stream",
+            },
+        )
+
+    @patch("observability.rate_limit_metrics.stream_reconciliation_delta")
+    def test_record_stream_reconciliation_delta_negative(self, mock_histogram):
+        """Test record_stream_reconciliation_delta with negative delta."""
+        record_stream_reconciliation_delta("client-xyz", "model-test", "invoke-with-response-stream", -15)
+
+        mock_histogram.record.assert_called_once_with(
+            -15,
+            {
+                "client_id": "client-xyz",
+                "model_id": "model-test",
+                "endpoint": "invoke-with-response-stream",
+            },
+        )

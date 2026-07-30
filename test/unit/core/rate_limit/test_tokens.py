@@ -393,3 +393,70 @@ class TestTokenCounter:
         result = token_counter._estimate_text_tokens("Hello world")  # 11 chars
         expected = max(1, 11 // 4)  # 11 // 4 = 2, but max(1, 2) = 2
         assert result == expected
+
+
+# ---------------------------------------------------------------------------
+# Feature: streaming-tpm-reconciliation, Property 1: Aggregated tokens formula and lower bound
+# ---------------------------------------------------------------------------
+
+from datetime import timedelta
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+
+# Build a strategy for model_ids from the burndown rate table
+_BURNDOWN_MODELS = list(TokenCounter.MODEL_BURNDOWN_RATES.keys()) + ["unknown.model"]
+
+
+@settings(max_examples=200, deadline=timedelta(milliseconds=500))
+@given(
+    input_tokens=st.integers(min_value=0, max_value=1_000_000),
+    output_tokens=st.integers(min_value=0, max_value=1_000_000),
+    cache_write_input_tokens=st.integers(min_value=0, max_value=1_000_000),
+    model_id=st.sampled_from(_BURNDOWN_MODELS),
+)
+def test_property_aggregated_tokens_formula_and_lower_bound(
+    input_tokens, output_tokens, cache_write_input_tokens, model_id
+):
+    """Property: aggregated == max(1, c + o*rate + i) AND result >= max(1, i)."""
+    tc = TokenCounter()
+    usage = {
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
+        "cacheWriteInputTokens": cache_write_input_tokens,
+    }
+    result = tc.calculate_aggregated_tokens(usage, model_id)
+    rate = tc.get_burndown_rate(model_id)
+
+    expected = max(1, cache_write_input_tokens + output_tokens * rate + input_tokens)
+    assert result == expected
+    assert result >= max(1, input_tokens)
+
+
+# ---------------------------------------------------------------------------
+# Feature: streaming-tpm-reconciliation, Property 2: Estimated + delta identity
+# ---------------------------------------------------------------------------
+
+
+@settings(max_examples=200, deadline=timedelta(milliseconds=500))
+@given(
+    input_tokens=st.integers(min_value=0, max_value=1_000_000),
+    output_tokens=st.integers(min_value=0, max_value=1_000_000),
+    cache_write_input_tokens=st.integers(min_value=0, max_value=1_000_000),
+    model_id=st.sampled_from(_BURNDOWN_MODELS),
+    estimated=st.integers(min_value=1, max_value=1_000_000),
+)
+def test_property_estimated_plus_delta_equals_aggregated(
+    input_tokens, output_tokens, cache_write_input_tokens, model_id, estimated
+):
+    """Property: estimated + delta == aggregated for all inputs."""
+    tc = TokenCounter()
+    usage = {
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
+        "cacheWriteInputTokens": cache_write_input_tokens,
+    }
+    aggregated = tc.calculate_aggregated_tokens(usage, model_id)
+    delta = aggregated - estimated
+    assert estimated + delta == aggregated

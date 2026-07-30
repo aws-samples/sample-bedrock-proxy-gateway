@@ -4,12 +4,55 @@
 """Unit tests for middleware.rate_limit module."""
 
 import json
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from middleware.rate_limit import RateLimitMiddleware
+
+
+def _make_non_stream_request(
+    *,
+    path: str = "/model/test-model/converse",
+    rate_ctx: tuple = ("client", "model", "account", 1000, "converse"),
+    estimated_tokens: int = 0,
+) -> Mock:
+    """Build a ``Request`` mock shaped like the non-streaming reconciliation
+    path expects: ``url.path`` targets a non-streaming Bedrock endpoint,
+    ``state.rate_ctx`` is populated, and ``state.estimated_tokens`` is
+    explicit so the delta computation is deterministic.
+    """
+    request = Mock(spec=Request)
+    request.url = Mock()
+    request.url.path = path
+    request.state = SimpleNamespace()
+    request.state.rate_ctx = rate_ctx
+    request.state.estimated_tokens = estimated_tokens
+    return request
+
+
+def _make_non_stream_response(payload: dict) -> Mock:
+    """Build a ``_StreamingResponse``-shaped mock whose ``body_iterator``
+    yields the JSON encoding of ``payload``. Matches how
+    ``BaseHTTPMiddleware`` wraps a non-streaming JSON response at
+    runtime — ``body`` is empty; only ``body_iterator`` exposes bytes.
+    """
+    return _make_non_stream_response_raw(json.dumps(payload).encode("utf-8"))
+
+
+def _make_non_stream_response_raw(body_bytes: bytes) -> Mock:
+    """Same shape as :func:`_make_non_stream_response` but for raw
+    non-JSON payloads (used by the malformed-body test cases).
+    """
+    async def _iter() -> "AsyncGeneratorType":  # noqa: F821 -- documentation only
+        yield body_bytes
+
+    response = Mock()
+    response.body_iterator = _iter()
+    response.body = b""  # matches Starlette's _StreamingResponse shape
+    return response
 
 
 class TestRateLimitMiddleware:
@@ -709,27 +752,107 @@ class TestRateLimitMiddleware:
         mock_logger.error.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_tokens_streaming_response(self):
-        """Test token update skips streaming responses.
-
-        LOGIC: Streaming responses don't have complete token usage data available
-        at response time. Token tracking for streams is handled differently
-        through the streaming context. Skip processing to avoid errors.
-
-        EXPECTED: Streaming responses are skipped without errors
+    async def test_update_tokens_routes_streaming_endpoint_to_reconcile_stream(self):
+        """When the URL path is a Bedrock streaming endpoint,
+        ``_update_tokens`` MUST route to ``_reconcile_stream`` and skip the
+        non-streaming path — regardless of response type. ``BaseHTTPMiddleware``
+        makes both streaming and non-streaming responses shape-identical, so
+        the URL is the only reliable discriminator.
         """
         middleware = RateLimitMiddleware(self.app)
 
         request = Mock(spec=Request)
-        from types import SimpleNamespace
-
+        request.url = Mock()
+        request.url.path = "/model/us.amazon.nova-lite-v1:0/converse-stream"
         request.state = SimpleNamespace()
         request.state.rate_ctx = ("client", "model", "account", 1000, "converse")
 
         response = StreamingResponse(iter([b"data"]), media_type="text/plain")
 
-        # Should not raise any exceptions and should skip processing
-        await middleware._update_tokens(request, response)
+        with (
+            patch.object(middleware, "_reconcile_stream", new_callable=AsyncMock) as mock_stream,
+            patch.object(middleware, "_reconcile_non_stream", new_callable=AsyncMock) as mock_non,
+        ):
+            await middleware._update_tokens(request, response)
+            mock_stream.assert_awaited_once_with(request, response)
+            mock_non.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_update_tokens_routes_non_streaming_endpoint_to_reconcile_non_stream(
+        self,
+    ):
+        """Regression: ``BaseHTTPMiddleware`` wraps every downstream
+        response in ``_StreamingResponse``. Using ``isinstance(response,
+        StreamingResponse)`` or ``hasattr(response, "body_iterator")`` to
+        detect streaming leaves non-streaming requests silently un-reconciled.
+        ``_update_tokens`` must key on the URL path via
+        ``_detect_stream_endpoint`` and dispatch non-streaming paths through
+        ``_reconcile_non_stream``.
+        """
+        middleware = RateLimitMiddleware(self.app)
+        request = _make_non_stream_request()
+        response = _make_non_stream_response(
+            {"usage": {"inputTokens": 14, "outputTokens": 100}}
+        )
+
+        with (
+            patch.object(middleware, "_reconcile_stream", new_callable=AsyncMock) as mock_stream,
+            patch.object(middleware, "_reconcile_non_stream", new_callable=AsyncMock) as mock_non,
+        ):
+            await middleware._update_tokens(request, response)
+            mock_non.assert_awaited_once_with(request, response)
+            mock_stream.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_reconcile_non_stream_replays_body_iterator(self):
+        """After ``_reconcile_non_stream`` drains ``body_iterator`` for
+        reconciliation, it MUST reassign ``body_iterator`` to a single-shot
+        replay of the same bytes so Starlette can still forward the response
+        to the client unchanged.
+        """
+        middleware = RateLimitMiddleware(self.app)
+        middleware.rate_limiter = Mock()
+        middleware.rate_limiter.limiter.check_and_consume = AsyncMock(return_value=True)
+        middleware.tokens = Mock()
+        middleware.tokens.extract.return_value = 178
+
+        payload = {"usage": {"inputTokens": 14, "outputTokens": 164}}
+        original_bytes = json.dumps(payload).encode("utf-8")
+        request = _make_non_stream_request(estimated_tokens=11)
+        response = _make_non_stream_response(payload)
+
+        await middleware._reconcile_non_stream(request, response)
+
+        # Body iterator was replaced; iterating it must yield the same
+        # bytes the original iterator would have produced.
+        replayed = b""
+        async for chunk in response.body_iterator:
+            replayed += chunk
+        assert replayed == original_bytes
+
+    @pytest.mark.asyncio
+    async def test_reconcile_non_stream_applies_signed_delta(self):
+        """The Redis write MUST use ``delta = aggregated - estimated``, not
+        the raw aggregated total. This preserves the pre-request estimate
+        write that ``check_and_consume_all`` already applied and closes the
+        estimate-vs-actual gap.
+        """
+        middleware = RateLimitMiddleware(self.app)
+        middleware.rate_limiter = Mock()
+        middleware.rate_limiter.limiter.check_and_consume = AsyncMock(return_value=True)
+        middleware.tokens = Mock()
+        middleware.tokens.extract.return_value = 178
+
+        request = _make_non_stream_request(estimated_tokens=11)
+        response = _make_non_stream_response(
+            {"usage": {"inputTokens": 14, "outputTokens": 164}}
+        )
+
+        await middleware._reconcile_non_stream(request, response)
+
+        middleware.rate_limiter.limiter.check_and_consume.assert_awaited_once_with(
+            "{client:model}:client:tpm", 1000, 178 - 11
+        )
 
     @pytest.mark.asyncio
     async def test_update_tokens_no_body(self):
@@ -758,42 +881,33 @@ class TestRateLimitMiddleware:
     @pytest.mark.asyncio
     @patch("middleware.rate_limit.record_tokens_consumed")
     async def test_update_tokens_unlimited_tpm(self, mock_record):
-        """Test token update with unlimited TPM.
-
-        LOGIC: For unlimited TPM quotas (tpm_limit = -1), only record
-        token consumption metrics without updating Redis counters.
-        This provides observability while avoiding unnecessary Redis operations.
-
-        EXPECTED: Tokens extracted and recorded, no Redis counter updates
+        """Non-streaming reconciliation on unlimited TPM: extract tokens,
+        record metrics, skip Redis. Mirrors the streaming reconciler's
+        ``tpm_limit_unlimited`` skip path.
         """
         middleware = RateLimitMiddleware(self.app)
         middleware.tokens = Mock()
         middleware.tokens.extract.return_value = 250
 
-        request = Mock(spec=Request)
-        from types import SimpleNamespace
-
-        request.state = SimpleNamespace()
-        request.state.rate_ctx = ("client", "model", "account", -1, "converse")  # Unlimited TPM
-
-        response = Mock()
-        response.body = json.dumps({"usage": {"outputTokens": 100, "inputTokens": 50}}).encode()
+        request = _make_non_stream_request(rate_ctx=("client", "model", "account", -1, "converse"))
+        response = _make_non_stream_response(
+            {"usage": {"outputTokens": 100, "inputTokens": 50}}
+        )
 
         await middleware._update_tokens(request, response)
 
         middleware.tokens.extract.assert_called_once()
+        # Non-streaming reconciliation records the aggregated total
+        # regardless of TPM-limit shape, matching the streaming path.
         mock_record.assert_called_once_with("client", "model", 250, "converse")
 
     @pytest.mark.asyncio
     @patch("middleware.rate_limit.record_tokens_consumed")
     async def test_update_tokens_limited_tpm(self, mock_record):
-        """Test token update with limited TPM.
-
-        LOGIC: For limited TPM quotas, must update Redis counters with actual
-        token consumption from model response. This replaces estimated tokens
-        with precise values for accurate quota tracking.
-
-        EXPECTED: Tokens extracted, Redis counter updated, metrics recorded
+        """Non-streaming reconciliation on limited TPM: extract tokens,
+        write the signed ``delta = aggregated - estimated`` to
+        Shared_TPM_Key, and record metrics. With ``estimated_tokens``
+        unset (defaults to 0), the delta equals the aggregated total.
         """
         middleware = RateLimitMiddleware(self.app)
         middleware.rate_limiter = Mock()
@@ -801,14 +915,12 @@ class TestRateLimitMiddleware:
         middleware.tokens.extract.return_value = 250
         middleware.rate_limiter.limiter.check_and_consume = AsyncMock(return_value=True)
 
-        request = Mock(spec=Request)
-        from types import SimpleNamespace
-
-        request.state = SimpleNamespace()
-        request.state.rate_ctx = ("client", "model", "account", 1000, "converse")  # Limited TPM
-
-        response = Mock()
-        response.body = json.dumps({"usage": {"outputTokens": 100, "inputTokens": 50}}).encode()
+        request = _make_non_stream_request(
+            rate_ctx=("client", "model", "account", 1000, "converse")
+        )
+        response = _make_non_stream_response(
+            {"usage": {"outputTokens": 100, "inputTokens": 50}}
+        )
 
         await middleware._update_tokens(request, response)
 
@@ -822,27 +934,22 @@ class TestRateLimitMiddleware:
     @patch("middleware.rate_limit.record_redis_failure")
     @patch("middleware.rate_limit.logger")
     async def test_update_tokens_redis_failure(self, mock_logger, mock_record_failure):
-        """Test token update handles Redis failures gracefully.
-
-        LOGIC: Redis failures during token updates should not block responses.
-        The middleware logs errors and records failure metrics but allows
-        the response to complete. This ensures service availability.
-
-        EXPECTED: Error logged, failure metrics recorded, no exceptions raised
+        """Redis-write failures during non-streaming reconciliation are
+        captured (``record_redis_failure`` + error log), swallowed
+        (no exception raised), and never propagate to the client.
         """
         middleware = RateLimitMiddleware(self.app)
         middleware.rate_limiter = Mock()
         middleware.tokens = Mock()
-        middleware.tokens.extract.side_effect = Exception("Redis connection failed")
+        middleware.tokens.extract.return_value = 250
+        middleware.rate_limiter.limiter.check_and_consume = AsyncMock(
+            side_effect=Exception("Redis connection failed")
+        )
 
-        request = Mock(spec=Request)
-        from types import SimpleNamespace
-
-        request.state = SimpleNamespace()
-        request.state.rate_ctx = ("client", "model", "account", 1000, "converse")
-
-        response = Mock()
-        response.body = json.dumps({"usage": {"outputTokens": 100}}).encode()
+        request = _make_non_stream_request(
+            rate_ctx=("client", "model", "account", 1000, "converse")
+        )
+        response = _make_non_stream_response({"usage": {"outputTokens": 100}})
 
         await middleware._update_tokens(request, response)
 
@@ -851,26 +958,18 @@ class TestRateLimitMiddleware:
 
     @pytest.mark.asyncio
     async def test_update_tokens_json_decode_error(self):
-        """Test token update handles JSON decode errors.
-
-        LOGIC: Invalid JSON in response body should not crash the middleware.
-        This can happen with malformed responses or non-JSON content.
-        Gracefully handle the error and continue without token updates.
-
-        EXPECTED: JSON errors handled gracefully, no exceptions raised
+        """Non-JSON response bodies (malformed / non-model endpoints) are
+        caught inside ``_reconcile_non_stream``'s JSON decode guard and
+        skipped — no exception, no token extraction attempt.
         """
         middleware = RateLimitMiddleware(self.app)
 
-        request = Mock(spec=Request)
-        from types import SimpleNamespace
+        request = _make_non_stream_request(
+            rate_ctx=("client", "model", "account", 1000, "converse")
+        )
+        response = _make_non_stream_response_raw(b"invalid json")
 
-        request.state = SimpleNamespace()
-        request.state.rate_ctx = ("client", "model", "account", 1000, "converse")
-
-        response = Mock()
-        response.body = b"invalid json"
-
-        # Should not raise exception, just log error
+        # Should not raise exception, just log skip event
         await middleware._update_tokens(request, response)
 
     def test_middleware_constants_and_imports(self):
@@ -950,25 +1049,17 @@ class TestRateLimitMiddleware:
     @pytest.mark.asyncio
     @patch("middleware.rate_limit.record_tokens_consumed")
     async def test_update_tokens_json_decode_error_handling(self, mock_record):
-        """Test _update_tokens handles JSON decode errors gracefully.
-
-        LOGIC: When response body contains invalid JSON, token extraction
-        should be skipped entirely. No token processing or metrics recording
-        should occur to avoid cascading errors.
-
-        EXPECTED: JSON errors handled, no token processing, no exceptions
+        """Redundant coverage: confirm the JSON-decode guard in
+        ``_reconcile_non_stream`` short-circuits before ``extract`` and
+        ``record_tokens_consumed`` are ever reached.
         """
         middleware = RateLimitMiddleware(self.app)
         middleware.tokens = Mock()
 
-        request = Mock(spec=Request)
-        from types import SimpleNamespace
-
-        request.state = SimpleNamespace()
-        request.state.rate_ctx = ("client", "model", "account", 1000, "converse")
-
-        response = Mock()
-        response.body = b"invalid json content"
+        request = _make_non_stream_request(
+            rate_ctx=("client", "model", "account", 1000, "converse")
+        )
+        response = _make_non_stream_response_raw(b"invalid json content")
 
         # Should not raise exception
         await middleware._update_tokens(request, response)
@@ -979,26 +1070,18 @@ class TestRateLimitMiddleware:
 
     @pytest.mark.asyncio
     async def test_update_tokens_non_redis_exception(self):
-        """Test _update_tokens handles non-Redis exceptions.
-
-        LOGIC: Non-Redis exceptions (ValueError, etc.) during token extraction
-        should not be recorded as Redis failures. These are different error
-        types that need separate handling and metrics tracking.
-
-        EXPECTED: Exception handled, no Redis failure recorded, extraction attempted
+        """Non-Redis exceptions from ``TokenCounter.extract`` are caught by
+        the outer ``_update_tokens`` guard and swallowed without recording
+        a Redis failure.
         """
         middleware = RateLimitMiddleware(self.app)
         middleware.tokens = Mock()
         middleware.tokens.extract.side_effect = ValueError("Non-Redis error")
 
-        request = Mock(spec=Request)
-        from types import SimpleNamespace
-
-        request.state = SimpleNamespace()
-        request.state.rate_ctx = ("client", "model", "account", 1000, "converse")
-
-        response = Mock()
-        response.body = json.dumps({"usage": {"outputTokens": 100}}).encode()
+        request = _make_non_stream_request(
+            rate_ctx=("client", "model", "account", 1000, "converse")
+        )
+        response = _make_non_stream_response({"usage": {"outputTokens": 100}})
 
         # Should not raise exception but also not record Redis failure
         await middleware._update_tokens(request, response)
