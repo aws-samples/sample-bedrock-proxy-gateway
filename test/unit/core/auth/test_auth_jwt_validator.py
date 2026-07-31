@@ -193,9 +193,7 @@ class TestJWTValidator:
         }
 
     @patch("core.auth.jwt_validator.config")
-    def test_validate_jwt_claims_skip_scope_check_ignores_invalid_scope(
-        self, mock_config
-    ):
+    def test_validate_jwt_claims_skip_scope_check_ignores_invalid_scope(self, mock_config):
         """When JWT_SKIP_SCOPE_CHECK is enabled, an out-of-allowlist ``scope``
         claim on the token is also ignored (the whole check is bypassed).
         """

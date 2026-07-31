@@ -9,9 +9,6 @@ from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from hypothesis import given, settings
-from hypothesis import strategies as st
-
 from core.rate_limit.eventstream_parser import (
     EventStreamMessage,
     EventStreamParser,
@@ -20,13 +17,12 @@ from core.rate_limit.eventstream_parser import (
 )
 from core.rate_limit.stream_reconciler import (
     ReconciliationContext,
-    StreamOutcome,
     StreamTokenReconciler,
-    TerminalUsage,
 )
 from core.rate_limit.tokens import TokenCounter
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from util.constants import RATELIMIT_UNLIMITED
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -72,9 +68,7 @@ def _make_metadata_chunk(
         }
     ).encode()
     msg = EventStreamMessage(
-        headers=(
-            Header(name=":event-type", wire_type=HeaderType.STRING, value="metadata"),
-        ),
+        headers=(Header(name=":event-type", wire_type=HeaderType.STRING, value="metadata"),),
         payload=payload,
     )
     return parser.encode(msg)
@@ -95,9 +89,7 @@ def _make_invoke_metrics_chunk(
         }
     ).encode()
     msg = EventStreamMessage(
-        headers=(
-            Header(name=":event-type", wire_type=HeaderType.STRING, value="chunk"),
-        ),
+        headers=(Header(name=":event-type", wire_type=HeaderType.STRING, value="chunk"),),
         payload=payload,
     )
     return parser.encode(msg)
@@ -281,9 +273,7 @@ class TestExceptionIsolation:
 
         # Bytes still forwarded
         assert collected == [metadata_bytes]
-        mock_redis_failure.assert_called_once_with(
-            "stream_reconciliation", "ConnectionError"
-        )
+        mock_redis_failure.assert_called_once_with("stream_reconciliation", "ConnectionError")
 
     @patch("core.rate_limit.stream_reconciler.logger")
     async def test_logger_raises_reconciler_completes(self, mock_logger):
@@ -462,9 +452,7 @@ class TestLogMetricShape:
 
     @patch("core.rate_limit.stream_reconciler.record_tokens_consumed")
     @patch("core.rate_limit.stream_reconciler.record_stream_reconciliation_delta")
-    async def test_record_tokens_consumed_called_with_aggregated(
-        self, mock_delta, mock_consumed
-    ):
+    async def test_record_tokens_consumed_called_with_aggregated(self, mock_delta, mock_consumed):
         """record_tokens_consumed called with aggregated_tokens."""
         metadata_bytes = _make_metadata_chunk(input_tokens=100, output_tokens=200, cache_write=10)
         ctx = _make_ctx(estimated_tokens=50, tpm_limit=5000)
@@ -489,9 +477,7 @@ class TestLogMetricShape:
 
     @patch("core.rate_limit.stream_reconciler.record_stream_reconciliation_delta")
     @patch("core.rate_limit.stream_reconciler.record_tokens_consumed")
-    async def test_record_stream_reconciliation_delta_recorded(
-        self, mock_consumed, mock_delta
-    ):
+    async def test_record_stream_reconciliation_delta_recorded(self, mock_consumed, mock_delta):
         """record_stream_reconciliation_delta recorded with delta."""
         metadata_bytes = _make_metadata_chunk(input_tokens=100, output_tokens=200, cache_write=10)
         estimated = 50

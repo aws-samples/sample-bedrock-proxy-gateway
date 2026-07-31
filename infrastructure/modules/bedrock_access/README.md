@@ -36,7 +36,7 @@
 | <a name="input_bedrock_runtime_vpce_id"></a> [bedrock\_runtime\_vpce\_id](#input\_bedrock\_runtime\_vpce\_id) | Bedrock VPC Endpoint ID | `string` | `""` | no |
 | <a name="input_bedrock_vpce_id"></a> [bedrock\_vpce\_id](#input\_bedrock\_vpce\_id) | Bedrock VPC Endpoint ID | `string` | `""` | no |
 | <a name="input_central_account_id"></a> [central\_account\_id](#input\_central\_account\_id) | List of central account ID for resource access | `string` | n/a | yes |
-| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br/>    app_id             = string<br/>    aws_region         = string<br/>    aws_account_id     = string<br/>    environment        = string<br/>    service_name       = string<br/>    log_retention_days = number<br/>  })</pre> | n/a | yes |
+| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br>    app_id             = string<br>    aws_region         = string<br>    aws_account_id     = string<br>    environment        = string<br>    service_name       = string<br>    log_retention_days = number<br>  })</pre> | n/a | yes |
 | <a name="input_common_tags"></a> [common\_tags](#input\_common\_tags) | Common tags applied to all resources | `map(string)` | n/a | yes |
 | <a name="input_jwt_audience"></a> [jwt\_audience](#input\_jwt\_audience) | JWT audience for OIDC provider | `string` | `"BPG"` | no |
 | <a name="input_oauth_provider_url"></a> [oauth\_provider\_url](#input\_oauth\_provider\_url) | OAuth provider URL (e.g., 'https://your-oauth-provider.com') | `string` | n/a | yes |

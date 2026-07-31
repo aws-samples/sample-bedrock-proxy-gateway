@@ -146,18 +146,11 @@ class EventStreamParser:
         total_length = _FRAMING_OVERHEAD + headers_length + payload_length
 
         if total_length > MAX_BUFFER_SIZE:
-            raise ValueError(
-                f"encoded message length {total_length} exceeds {MAX_BUFFER_SIZE}"
-            )
+            raise ValueError(f"encoded message length {total_length} exceeds {MAX_BUFFER_SIZE}")
 
         prelude = struct.pack(">II", total_length, headers_length)
         prelude_crc = zlib.crc32(prelude) & 0xFFFFFFFF
-        pre_crc_bytes = (
-            prelude
-            + struct.pack(">I", prelude_crc)
-            + headers_bytes
-            + msg.payload
-        )
+        pre_crc_bytes = prelude + struct.pack(">I", prelude_crc) + headers_bytes + msg.payload
         message_crc = zlib.crc32(pre_crc_bytes) & 0xFFFFFFFF
         return pre_crc_bytes + struct.pack(">I", message_crc)
 
@@ -224,9 +217,7 @@ class EventStreamParser:
     # Internal decode helpers
     # ------------------------------------------------------------------
 
-    def _decode_one(
-        self, buf: bytes, offset: int
-    ) -> tuple[EventStreamMessage, int]:
+    def _decode_one(self, buf: bytes, offset: int) -> tuple[EventStreamMessage, int]:
         """Decode a single message starting at *offset*. Returns (message, bytes_consumed)."""
         total = len(buf)
         remaining = total - offset
@@ -287,9 +278,7 @@ class EventStreamParser:
         # Verify message CRC-32.
         message_end = offset + total_length
         pre_crc_bytes = buf[offset : message_end - _MESSAGE_CRC_SIZE]
-        declared_message_crc = struct.unpack_from(
-            ">I", buf, message_end - _MESSAGE_CRC_SIZE
-        )[0]
+        declared_message_crc = struct.unpack_from(">I", buf, message_end - _MESSAGE_CRC_SIZE)[0]
         actual_message_crc = zlib.crc32(pre_crc_bytes) & 0xFFFFFFFF
         if actual_message_crc != declared_message_crc:
             raise ParseError(
@@ -311,9 +300,7 @@ class EventStreamParser:
 
         return EventStreamMessage(headers=headers, payload=payload), total_length
 
-    def _decode_headers(
-        self, buf: bytes, start: int, end: int
-    ) -> tuple[Header, ...]:
+    def _decode_headers(self, buf: bytes, start: int, end: int) -> tuple[Header, ...]:
         """Decode the header block spanning ``buf[start:end]``."""
         headers: list[Header] = []
         pos = start
@@ -461,9 +448,7 @@ class EventStreamParser:
         value_bytes = self._encode_header_value(header.wire_type, header.value)
         return prefix + value_bytes
 
-    def _encode_header_value(
-        self, wire_type: HeaderType, value: HeaderValue
-    ) -> bytes:
+    def _encode_header_value(self, wire_type: HeaderType, value: HeaderValue) -> bytes:
         """Encode a header value according to its wire type."""
         match wire_type:
             case HeaderType.BOOL_TRUE:
@@ -492,9 +477,7 @@ class EventStreamParser:
                 return struct.pack(">H", len(value)) + bytes(value)
             case HeaderType.STRING:
                 if not isinstance(value, str):
-                    raise ValueError(
-                        f"STRING header requires str, got {type(value).__name__}"
-                    )
+                    raise ValueError(f"STRING header requires str, got {type(value).__name__}")
                 encoded = value.encode("utf-8")
                 if len(encoded) > 0xFFFF:
                     raise ValueError(f"STRING byte length {len(encoded)} exceeds 65535")
@@ -506,18 +489,12 @@ class EventStreamParser:
                     )
                 aware = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
                 delta = aware - _EPOCH
-                ms = (
-                    delta.days * 86_400_000
-                    + delta.seconds * 1_000
-                    + delta.microseconds // 1_000
-                )
+                ms = delta.days * 86_400_000 + delta.seconds * 1_000 + delta.microseconds // 1_000
                 self._require_int(ms, -(2**63), 2**63 - 1, "TIMESTAMP")
                 return struct.pack(">q", ms)
             case HeaderType.UUID:
                 if not isinstance(value, UUID):
-                    raise ValueError(
-                        f"UUID header requires uuid.UUID, got {type(value).__name__}"
-                    )
+                    raise ValueError(f"UUID header requires uuid.UUID, got {type(value).__name__}")
                 return value.bytes
 
         raise ValueError(f"unhandled wire type {wire_type!r}")
@@ -526,8 +503,6 @@ class EventStreamParser:
     def _require_int(value: object, lo: int, hi: int, what: str) -> None:
         """Assert that *value* is a Python int within [lo, hi]."""
         if not isinstance(value, int) or isinstance(value, bool):
-            raise ValueError(
-                f"{what} header requires int, got {type(value).__name__}"
-            )
+            raise ValueError(f"{what} header requires int, got {type(value).__name__}")
         if not (lo <= value <= hi):
             raise ValueError(f"{what} header value {value} outside [{lo}, {hi}]")

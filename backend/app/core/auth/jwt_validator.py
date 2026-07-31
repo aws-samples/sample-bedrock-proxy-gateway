@@ -123,12 +123,8 @@ def validate_jwt_claims(claims: dict) -> dict:
         # Validate scope against allowed scopes (check if any allowed scope is
         # present).
         user_scopes = scope.split() if isinstance(scope, str) else [scope]
-        if not any(
-            allowed_scope in user_scopes for allowed_scope in config.allowed_scopes
-        ):
-            raise ValueError(
-                f"Invalid scope: {scope}. Allowed: {config.allowed_scopes}"
-            )
+        if not any(allowed_scope in user_scopes for allowed_scope in config.allowed_scopes):
+            raise ValueError(f"Invalid scope: {scope}. Allowed: {config.allowed_scopes}")
 
     # Additional time validation beyond JWT library checks
     current_time = time.time()

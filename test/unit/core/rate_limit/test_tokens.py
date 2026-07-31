@@ -404,7 +404,6 @@ from datetime import timedelta
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-
 # Build a strategy for model_ids from the burndown rate table
 _BURNDOWN_MODELS = list(TokenCounter.MODEL_BURNDOWN_RATES.keys()) + ["unknown.model"]
 

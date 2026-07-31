@@ -10,9 +10,6 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
-from hypothesis import given, settings
-from hypothesis import strategies as st
-
 from core.rate_limit.eventstream_parser import (
     ErrorKind,
     EventStreamMessage,
@@ -21,6 +18,8 @@ from core.rate_limit.eventstream_parser import (
     HeaderType,
     ParseError,
 )
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 # ---------------------------------------------------------------------------
 # Hypothesis strategies for EventStreamMessage
@@ -36,21 +35,15 @@ _header_name_st = st.text(
 # Strategy for header values by wire type
 _bool_true_st = st.just((HeaderType.BOOL_TRUE, True))
 _bool_false_st = st.just((HeaderType.BOOL_FALSE, False))
-_byte_st = st.integers(min_value=-(2**7), max_value=2**7 - 1).map(
-    lambda v: (HeaderType.BYTE, v)
-)
+_byte_st = st.integers(min_value=-(2**7), max_value=2**7 - 1).map(lambda v: (HeaderType.BYTE, v))
 _short_st = st.integers(min_value=-(2**15), max_value=2**15 - 1).map(
     lambda v: (HeaderType.SHORT, v)
 )
 _integer_st = st.integers(min_value=-(2**31), max_value=2**31 - 1).map(
     lambda v: (HeaderType.INTEGER, v)
 )
-_long_st = st.integers(min_value=-(2**63), max_value=2**63 - 1).map(
-    lambda v: (HeaderType.LONG, v)
-)
-_byte_array_st = st.binary(min_size=0, max_size=128).map(
-    lambda v: (HeaderType.BYTE_ARRAY, v)
-)
+_long_st = st.integers(min_value=-(2**63), max_value=2**63 - 1).map(lambda v: (HeaderType.LONG, v))
+_byte_array_st = st.binary(min_size=0, max_size=128).map(lambda v: (HeaderType.BYTE_ARRAY, v))
 _string_st = st.text(min_size=0, max_size=128).map(lambda v: (HeaderType.STRING, v))
 _timestamp_st = st.integers(min_value=0, max_value=2**40).map(
     lambda ms: (
@@ -58,9 +51,7 @@ _timestamp_st = st.integers(min_value=0, max_value=2**40).map(
         datetime(1970, 1, 1, tzinfo=UTC) + timedelta(milliseconds=ms),
     )
 )
-_uuid_st = st.binary(min_size=16, max_size=16).map(
-    lambda b: (HeaderType.UUID, UUID(bytes=b))
-)
+_uuid_st = st.binary(min_size=16, max_size=16).map(lambda b: (HeaderType.UUID, UUID(bytes=b)))
 
 _typed_value_st = st.one_of(
     _bool_true_st,
@@ -215,7 +206,7 @@ class TestEventStreamParserClassifiers:
         assert parser.is_converse_metadata(msg) is True
 
     def test_is_converse_metadata_missing_usage_key(self, parser):
-        """metadata event without 'usage' key -> returns False."""
+        """Metadata event without 'usage' key -> returns False."""
         payload = json.dumps({"metrics": {"latencyMs": 100}}).encode()
         msg = EventStreamMessage(
             headers=(
@@ -245,9 +236,7 @@ class TestEventStreamParserClassifiers:
 
     def test_is_invoke_metrics_chunk_valid(self, parser):
         """Valid chunk event with invocationMetrics -> returns True."""
-        payload = json.dumps(
-            {"amazon-bedrock-invocationMetrics": {"inputTokenCount": 5}}
-        ).encode()
+        payload = json.dumps({"amazon-bedrock-invocationMetrics": {"inputTokenCount": 5}}).encode()
         msg = EventStreamMessage(
             headers=(
                 Header(
@@ -261,7 +250,7 @@ class TestEventStreamParserClassifiers:
         assert parser.is_invoke_metrics_chunk(msg) is True
 
     def test_is_invoke_metrics_chunk_missing_key(self, parser):
-        """chunk event without invocationMetrics key -> returns False."""
+        """Chunk event without invocationMetrics key -> returns False."""
         payload = json.dumps({"bytes": "somedata"}).encode()
         msg = EventStreamMessage(
             headers=(

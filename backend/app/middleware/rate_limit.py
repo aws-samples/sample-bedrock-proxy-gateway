@@ -51,7 +51,6 @@ from core.rate_limit.engine import RateLimitEngine
 from core.rate_limit.limiter import RateLimiter
 from core.rate_limit.tokens import TokenCounter
 from fastapi import HTTPException, Request
-from fastapi.responses import StreamingResponse
 from observability.context_logger import ContextLogger
 from observability.context_vars import client_id_context
 from observability.rate_limit_metrics import (
@@ -711,9 +710,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if tpm_limit != RATELIMIT_UNLIMITED and delta != 0:
             shared_tpm_key = f"{{{client_id}:{model_id}}}:client:tpm"
             try:
-                await self.rate_limiter.limiter.check_and_consume(
-                    shared_tpm_key, tpm_limit, delta
-                )
+                await self.rate_limiter.limiter.check_and_consume(shared_tpm_key, tpm_limit, delta)
             except Exception as e:
                 record_redis_failure("token_update", type(e).__name__)
                 logger.error(

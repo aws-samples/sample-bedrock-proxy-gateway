@@ -252,9 +252,7 @@ def create_bedrock_httpx_router(
                             if resp.status_code >= 400:
                                 try:
                                     body_bytes = await resp.aread()
-                                    error_msg = body_bytes[:200].decode(
-                                        "utf-8", errors="replace"
-                                    )
+                                    error_msg = body_bytes[:200].decode("utf-8", errors="replace")
                                 except Exception as read_err:
                                     error_msg = (
                                         f"<unable to read body: "
@@ -381,7 +379,6 @@ def create_bedrock_httpx_router(
                 },
             )
 
-
             body_bytes = orjson.dumps(body)
 
             async with metrics.track_request("invoke", model_id):
@@ -496,7 +493,6 @@ def create_bedrock_httpx_router(
                     "gen_ai.request.content_type": "application/json",
                 },
             )
-
 
             body_bytes = orjson.dumps(body)
 

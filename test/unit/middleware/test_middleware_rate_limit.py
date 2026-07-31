@@ -46,6 +46,7 @@ def _make_non_stream_response_raw(body_bytes: bytes) -> Mock:
     """Same shape as :func:`_make_non_stream_response` but for raw
     non-JSON payloads (used by the malformed-body test cases).
     """
+
     async def _iter() -> "AsyncGeneratorType":  # noqa: F821 -- documentation only
         yield body_bytes
 
@@ -791,9 +792,7 @@ class TestRateLimitMiddleware:
         """
         middleware = RateLimitMiddleware(self.app)
         request = _make_non_stream_request()
-        response = _make_non_stream_response(
-            {"usage": {"inputTokens": 14, "outputTokens": 100}}
-        )
+        response = _make_non_stream_response({"usage": {"inputTokens": 14, "outputTokens": 100}})
 
         with (
             patch.object(middleware, "_reconcile_stream", new_callable=AsyncMock) as mock_stream,
@@ -844,9 +843,7 @@ class TestRateLimitMiddleware:
         middleware.tokens.extract.return_value = 178
 
         request = _make_non_stream_request(estimated_tokens=11)
-        response = _make_non_stream_response(
-            {"usage": {"inputTokens": 14, "outputTokens": 164}}
-        )
+        response = _make_non_stream_response({"usage": {"inputTokens": 14, "outputTokens": 164}})
 
         await middleware._reconcile_non_stream(request, response)
 
@@ -890,9 +887,7 @@ class TestRateLimitMiddleware:
         middleware.tokens.extract.return_value = 250
 
         request = _make_non_stream_request(rate_ctx=("client", "model", "account", -1, "converse"))
-        response = _make_non_stream_response(
-            {"usage": {"outputTokens": 100, "inputTokens": 50}}
-        )
+        response = _make_non_stream_response({"usage": {"outputTokens": 100, "inputTokens": 50}})
 
         await middleware._update_tokens(request, response)
 
@@ -918,9 +913,7 @@ class TestRateLimitMiddleware:
         request = _make_non_stream_request(
             rate_ctx=("client", "model", "account", 1000, "converse")
         )
-        response = _make_non_stream_response(
-            {"usage": {"outputTokens": 100, "inputTokens": 50}}
-        )
+        response = _make_non_stream_response({"usage": {"outputTokens": 100, "inputTokens": 50}})
 
         await middleware._update_tokens(request, response)
 

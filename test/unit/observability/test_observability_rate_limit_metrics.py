@@ -120,7 +120,9 @@ class TestRateLimitMetrics:
     @patch("observability.rate_limit_metrics.stream_reconciliation_delta")
     def test_record_stream_reconciliation_delta_negative(self, mock_histogram):
         """Test record_stream_reconciliation_delta with negative delta."""
-        record_stream_reconciliation_delta("client-xyz", "model-test", "invoke-with-response-stream", -15)
+        record_stream_reconciliation_delta(
+            "client-xyz", "model-test", "invoke-with-response-stream", -15
+        )
 
         mock_histogram.record.assert_called_once_with(
             -15,

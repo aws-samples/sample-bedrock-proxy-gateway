@@ -183,9 +183,7 @@ class StreamTokenReconciler:
         self._parser = parser if parser is not None else EventStreamParser()
 
         self._pending: bytes | None = None
-        self._candidates: deque[EventStreamMessage] = deque(
-            maxlen=_CANDIDATE_BUFFER_MAXLEN
-        )
+        self._candidates: deque[EventStreamMessage] = deque(maxlen=_CANDIDATE_BUFFER_MAXLEN)
 
     # ------------------------------------------------------------------
     # Async iteration
@@ -234,9 +232,7 @@ class StreamTokenReconciler:
 
     def _is_candidate(self, msg: EventStreamMessage) -> bool:
         """Return True iff *msg* is a terminal usage event candidate."""
-        return self._parser.is_converse_metadata(
-            msg
-        ) or self._parser.is_invoke_metrics_chunk(msg)
+        return self._parser.is_converse_metadata(msg) or self._parser.is_invoke_metrics_chunk(msg)
 
     # ------------------------------------------------------------------
     # Finalize — flat sequential checks with early returns
@@ -314,9 +310,7 @@ class StreamTokenReconciler:
             if delta != 0:
                 shared_tpm_key = f"{{{ctx.client_id}:{ctx.model_id}}}:client:tpm"
                 try:
-                    await self._limiter.check_and_consume(
-                        shared_tpm_key, ctx.tpm_limit, delta
-                    )
+                    await self._limiter.check_and_consume(shared_tpm_key, ctx.tpm_limit, delta)
                 except Exception as e:  # noqa: BLE001
                     _safe_emit(
                         record_redis_failure,
@@ -367,9 +361,7 @@ class StreamTokenReconciler:
         }
         return [name for name in _APPLIED_REQUIRED_FIELDS if values.get(name) is None]
 
-    def _emit_applied(
-        self, terminal: TerminalUsage, aggregated: int, delta: int
-    ) -> bool:
+    def _emit_applied(self, terminal: TerminalUsage, aggregated: int, delta: int) -> bool:
         """Emit stream_reconciliation_applied log event. Returns False if suppressed."""
         missing = self._missing_applied_fields(terminal, aggregated, delta)
         if missing:

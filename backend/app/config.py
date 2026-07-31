@@ -52,9 +52,7 @@ class Config:
         allowed_scopes_str = os.getenv("JWT_ALLOWED_SCOPES", DEFAULT_ALLOWED_SCOPES)
         self.allowed_scopes = [scope.strip() for scope in allowed_scopes_str.split(",")]
         # Skip scope validation for local dev with ID tokens. MUST be false in prod.
-        self.jwt_skip_scope_check = (
-            os.getenv("JWT_SKIP_SCOPE_CHECK", "false").lower() == "true"
-        )
+        self.jwt_skip_scope_check = os.getenv("JWT_SKIP_SCOPE_CHECK", "false").lower() == "true"
 
         # AWS Service Configuration
         self.shared_role_name = os.getenv("SHARED_ROLE_NAME", "shared-account-role")
@@ -84,9 +82,7 @@ class Config:
 
         # Cluster mode for ElastiCache (production). Set to "false" for local
         # single-node Valkey/Redis containers.
-        self.valkey_cluster_mode = (
-            os.getenv("VALKEY_CLUSTER_MODE", "true").lower() == "true"
-        )
+        self.valkey_cluster_mode = os.getenv("VALKEY_CLUSTER_MODE", "true").lower() == "true"
 
         default_rate_limiting = "false" if self.environment == "dev" else "true"
         self.rate_limiting_enabled = (
