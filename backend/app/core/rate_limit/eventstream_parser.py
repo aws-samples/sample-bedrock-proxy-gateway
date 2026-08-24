@@ -21,6 +21,7 @@ Framing layout per message:
 
 from __future__ import annotations
 
+import base64
 import json
 import struct
 import zlib
@@ -175,12 +176,24 @@ class EventStreamParser:
     def is_invoke_metrics_chunk(self, msg: EventStreamMessage) -> bool:
         """Return True iff *msg* is an invoke-stream terminal usage event.
 
-        Checks for ``:event-type`` == ``"chunk"`` and an ``amazon-bedrock-invocationMetrics`` key.
+        Checks for ``:event-type`` == ``"chunk"`` and ``amazon-bedrock-invocationMetrics``
+        either at top level or inside a base64 ``{"bytes":"..."}`` envelope.
         """
         if not self._has_event_type(msg, "chunk"):
             return False
         payload = self._decode_json_object(msg.payload)
-        return payload is not None and "amazon-bedrock-invocationMetrics" in payload
+        if payload is None:
+            return False
+        if "amazon-bedrock-invocationMetrics" in payload:
+            return True
+        # Unwrap {"bytes":"<base64>"} envelope used by invoke-with-response-stream
+        if "bytes" in payload and isinstance(payload["bytes"], str):
+            try:
+                inner = json.loads(base64.b64decode(payload["bytes"]))
+                return isinstance(inner, dict) and "amazon-bedrock-invocationMetrics" in inner
+            except Exception:
+                return False
+        return False
 
     # ------------------------------------------------------------------
     # Internal classifier helpers

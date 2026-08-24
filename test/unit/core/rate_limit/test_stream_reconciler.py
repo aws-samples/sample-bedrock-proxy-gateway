@@ -161,15 +161,15 @@ class TestStreamOutcomeMatrix:
         ctx = _make_ctx(estimated_tokens=50, tpm_limit=5000)
         tokens = TokenCounter()
         limiter = AsyncMock()
-        limiter.check_and_consume = AsyncMock(return_value=(True, 0))
+        limiter.reconcile = AsyncMock(return_value=0)
 
         upstream = _make_upstream([b"hello", metadata_bytes])
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
         collected = await _collect(reconciler)
 
         assert collected == [b"hello", metadata_bytes]
-        limiter.check_and_consume.assert_called_once()
-        call_args = limiter.check_and_consume.call_args
+        limiter.reconcile.assert_called_once()
+        call_args = limiter.reconcile.call_args
         # Key format: {client_id:model_id}:client:tpm
         assert "test-client" in call_args[0][0]
         mock_delta.assert_called_once()
@@ -192,7 +192,7 @@ class TestStreamOutcomeMatrix:
         with pytest.raises(RuntimeError, match="upstream broke"):
             await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_delta.assert_not_called()
 
     @patch("core.rate_limit.stream_reconciler.record_tokens_consumed")
@@ -212,7 +212,7 @@ class TestStreamOutcomeMatrix:
         with pytest.raises(asyncio.CancelledError):
             await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_delta.assert_not_called()
 
     @patch("core.rate_limit.stream_reconciler.record_tokens_consumed")
@@ -229,7 +229,7 @@ class TestStreamOutcomeMatrix:
         collected = await _collect(reconciler)
 
         assert collected == [b"chunk1", b"chunk2"]
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_delta.assert_not_called()
         mock_consumed.assert_not_called()
 
@@ -265,7 +265,7 @@ class TestExceptionIsolation:
         ctx = _make_ctx(estimated_tokens=30, tpm_limit=5000)
         tokens = TokenCounter()
         limiter = AsyncMock()
-        limiter.check_and_consume = AsyncMock(side_effect=ConnectionError("redis down"))
+        limiter.reconcile = AsyncMock(side_effect=ConnectionError("redis down"))
 
         upstream = _make_upstream([metadata_bytes])
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
@@ -282,7 +282,7 @@ class TestExceptionIsolation:
         ctx = _make_ctx(estimated_tokens=30, tpm_limit=5000)
         tokens = TokenCounter()
         limiter = AsyncMock()
-        limiter.check_and_consume = AsyncMock(return_value=(True, 0))
+        limiter.reconcile = AsyncMock(return_value=0)
 
         # Make info calls raise
         mock_logger.info.side_effect = RuntimeError("logging broken")
@@ -315,7 +315,7 @@ class TestSkipReasons:
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
         await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_logger.info.assert_called()
         # Check that reason is in the log call
         call_args = mock_logger.info.call_args
@@ -332,7 +332,7 @@ class TestSkipReasons:
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
         await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_logger.info.assert_called()
         call_args = mock_logger.info.call_args
         assert call_args[1]["extra"]["reason"] == "tpm_limit_unlimited"
@@ -352,7 +352,7 @@ class TestSkipReasons:
         with pytest.raises(ValueError):
             await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_logger.info.assert_called()
         call_args = mock_logger.info.call_args
         assert call_args[1]["extra"]["reason"] == "upstream_error"
@@ -372,7 +372,7 @@ class TestSkipReasons:
         with pytest.raises(asyncio.CancelledError):
             await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_logger.info.assert_called()
         call_args = mock_logger.info.call_args
         assert call_args[1]["extra"]["reason"] == "client_disconnect"
@@ -388,7 +388,7 @@ class TestSkipReasons:
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
         await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
         mock_logger.info.assert_called()
         call_args = mock_logger.info.call_args
         assert call_args[1]["extra"]["reason"] == "missing_usage"
@@ -404,7 +404,7 @@ class TestSkipReasons:
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
         await _collect(reconciler)
 
-        limiter.check_and_consume.assert_not_called()
+        limiter.reconcile.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -426,7 +426,7 @@ class TestLogMetricShape:
         ctx = _make_ctx(estimated_tokens=50, tpm_limit=5000)
         tokens = TokenCounter()
         limiter = AsyncMock()
-        limiter.check_and_consume = AsyncMock(return_value=(True, 0))
+        limiter.reconcile = AsyncMock(return_value=0)
 
         upstream = _make_upstream([metadata_bytes])
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
@@ -458,7 +458,7 @@ class TestLogMetricShape:
         ctx = _make_ctx(estimated_tokens=50, tpm_limit=5000)
         tokens = TokenCounter()
         limiter = AsyncMock()
-        limiter.check_and_consume = AsyncMock(return_value=(True, 0))
+        limiter.reconcile = AsyncMock(return_value=0)
 
         upstream = _make_upstream([metadata_bytes])
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
@@ -484,7 +484,7 @@ class TestLogMetricShape:
         ctx = _make_ctx(estimated_tokens=estimated, tpm_limit=5000)
         tokens = TokenCounter()
         limiter = AsyncMock()
-        limiter.check_and_consume = AsyncMock(return_value=(True, 0))
+        limiter.reconcile = AsyncMock(return_value=0)
 
         upstream = _make_upstream([metadata_bytes])
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
@@ -510,7 +510,7 @@ class TestLogMetricShape:
         ctx = _make_ctx(estimated_tokens=50, tpm_limit=5000)
         tokens = TokenCounter()
         limiter = AsyncMock()
-        limiter.check_and_consume = AsyncMock(return_value=(True, 0))
+        limiter.reconcile = AsyncMock(return_value=0)
 
         upstream = _make_upstream([metadata_bytes])
         reconciler = StreamTokenReconciler(upstream, ctx, tokens, limiter)
@@ -533,4 +533,4 @@ class TestLogMetricShape:
         mock_delta.assert_not_called()
         mock_consumed.assert_not_called()
         # But check_and_consume is still called (delta application is independent of log emission)
-        limiter.check_and_consume.assert_called_once()
+        limiter.reconcile.assert_called_once()

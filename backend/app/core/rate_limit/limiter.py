@@ -111,6 +111,33 @@ class RateLimiter:
             await self.valkey.expire(window_key, 60)
             return (True, current_count + tokens)
 
+    async def reconcile(self, key: str, tokens: int) -> int:
+        """Unconditionally increment a rate-limit key by a signed token count.
+
+        Used for post-response reconciliation. Unlike check_and_consume, this
+        does NOT check against the limit — the delta always lands. Accepts
+        negative values (refunds when estimated > actual).
+        """
+        await self._ensure_client()
+        window_expiry = self._get_window_expiry()
+        window_key = f"LIMITER/{key}/{window_expiry}"
+
+        try:
+            lua_script = """
+            local new_val = redis.call('INCRBY', KEYS[1], ARGV[1])
+            redis.call('EXPIRE', KEYS[1], 60)
+            return new_val
+            """
+            result = await self.valkey.custom_command(
+                ["EVAL", lua_script, "1", window_key, str(tokens)]
+            )
+            return int(result)
+        except Exception:
+            await self.valkey.incrby(window_key, tokens)
+            await self.valkey.expire(window_key, 60)
+            current = await self.valkey.get(window_key)
+            return int(current.decode("utf-8")) if current else 0
+
     async def check_and_consume_all(
         self,
         client_rpm_key: str,

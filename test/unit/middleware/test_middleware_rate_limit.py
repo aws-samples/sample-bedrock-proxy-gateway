@@ -811,7 +811,7 @@ class TestRateLimitMiddleware:
         """
         middleware = RateLimitMiddleware(self.app)
         middleware.rate_limiter = Mock()
-        middleware.rate_limiter.limiter.check_and_consume = AsyncMock(return_value=True)
+        middleware.rate_limiter.limiter.reconcile = AsyncMock(return_value=True)
         middleware.tokens = Mock()
         middleware.tokens.extract.return_value = 178
 
@@ -838,7 +838,7 @@ class TestRateLimitMiddleware:
         """
         middleware = RateLimitMiddleware(self.app)
         middleware.rate_limiter = Mock()
-        middleware.rate_limiter.limiter.check_and_consume = AsyncMock(return_value=True)
+        middleware.rate_limiter.limiter.reconcile = AsyncMock(return_value=True)
         middleware.tokens = Mock()
         middleware.tokens.extract.return_value = 178
 
@@ -847,8 +847,8 @@ class TestRateLimitMiddleware:
 
         await middleware._reconcile_non_stream(request, response)
 
-        middleware.rate_limiter.limiter.check_and_consume.assert_awaited_once_with(
-            "{client:model}:client:tpm", 1000, 178 - 11
+        middleware.rate_limiter.limiter.reconcile.assert_awaited_once_with(
+            "{client:model}:client:tpm", 178 - 11
         )
 
     @pytest.mark.asyncio
@@ -908,7 +908,7 @@ class TestRateLimitMiddleware:
         middleware.rate_limiter = Mock()
         middleware.tokens = Mock()
         middleware.tokens.extract.return_value = 250
-        middleware.rate_limiter.limiter.check_and_consume = AsyncMock(return_value=True)
+        middleware.rate_limiter.limiter.reconcile = AsyncMock(return_value=250)
 
         request = _make_non_stream_request(
             rate_ctx=("client", "model", "account", 1000, "converse")
@@ -918,8 +918,8 @@ class TestRateLimitMiddleware:
         await middleware._update_tokens(request, response)
 
         middleware.tokens.extract.assert_called_once()
-        middleware.rate_limiter.limiter.check_and_consume.assert_called_once_with(
-            "{client:model}:client:tpm", 1000, 250
+        middleware.rate_limiter.limiter.reconcile.assert_called_once_with(
+            "{client:model}:client:tpm", 250
         )
         mock_record.assert_called_once_with("client", "model", 250, "converse")
 
@@ -935,7 +935,7 @@ class TestRateLimitMiddleware:
         middleware.rate_limiter = Mock()
         middleware.tokens = Mock()
         middleware.tokens.extract.return_value = 250
-        middleware.rate_limiter.limiter.check_and_consume = AsyncMock(
+        middleware.rate_limiter.limiter.reconcile = AsyncMock(
             side_effect=Exception("Redis connection failed")
         )
 

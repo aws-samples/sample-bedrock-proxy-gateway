@@ -310,7 +310,7 @@ class StreamTokenReconciler:
             if delta != 0:
                 shared_tpm_key = f"{{{ctx.client_id}:{ctx.model_id}}}:client:tpm"
                 try:
-                    await self._limiter.check_and_consume(shared_tpm_key, ctx.tpm_limit, delta)
+                    await self._limiter.reconcile(shared_tpm_key, delta)
                 except Exception as e:  # noqa: BLE001
                     _safe_emit(
                         record_redis_failure,
@@ -437,6 +437,13 @@ class StreamTokenReconciler:
         payload = _decode_payload_dict(candidate.payload)
         if payload is None:
             return None
+        # Unwrap base64 {"bytes":"..."} envelope if metrics not at top level
+        if "amazon-bedrock-invocationMetrics" not in payload and "bytes" in payload:
+            import base64 as b64
+            try:
+                payload = json.loads(b64.b64decode(payload["bytes"]))
+            except Exception:
+                return None
         metrics = payload.get("amazon-bedrock-invocationMetrics")
         if not isinstance(metrics, dict):
             return None
