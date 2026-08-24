@@ -27,7 +27,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_alb_arn"></a> [alb\_arn](#input\_alb\_arn) | ARN of the ALB to associate with WAF | `string` | n/a | yes |
-| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br/>    app_id         = string<br/>    aws_region     = string<br/>    aws_account_id = string<br/>    environment    = string<br/>    service_name   = string<br/>  })</pre> | n/a | yes |
+| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br>    app_id         = string<br>    aws_region     = string<br>    aws_account_id = string<br>    environment    = string<br>    service_name   = string<br>  })</pre> | n/a | yes |
 | <a name="input_common_tags"></a> [common\_tags](#input\_common\_tags) | Common tags applied to all resources | `map(string)` | n/a | yes |
 | <a name="input_waf_rate_limit"></a> [waf\_rate\_limit](#input\_waf\_rate\_limit) | WAF rate limit (requests per 5-minute window per IP) | `number` | `2000` | no |
 

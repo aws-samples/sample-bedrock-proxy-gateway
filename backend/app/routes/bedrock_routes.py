@@ -247,7 +247,34 @@ def create_bedrock_httpx_router(
                     chunk_count = 0
                     try:
                         async with stream_cm as resp:
-                            resp.raise_for_status()
+                            # Read error body inside async with — the stream
+                            # is closed by __aexit__ and unreadable afterwards.
+                            if resp.status_code >= 400:
+                                try:
+                                    body_bytes = await resp.aread()
+                                    error_msg = body_bytes[:200].decode("utf-8", errors="replace")
+                                except Exception as read_err:
+                                    error_msg = (
+                                        f"<unable to read body: "
+                                        f"{type(read_err).__name__}: {read_err}>"
+                                    )
+                                    status_code = resp.status_code
+                                    logger.warning(
+                                        f"Bedrock streaming error: {status_code} - {error_msg}",
+                                        extra={
+                                            "gen_ai.request.model": model_id,
+                                            "error.type": "BedrockStreamError",
+                                            "error.message": error_msg,
+                                            "error.status_code": status_code,
+                                        },
+                                    )
+                                    yield create_aws_error_json(
+                                        error_code="BedrockError",
+                                        error_message=error_msg,
+                                        request_id="stream-bedrock-error",
+                                    )
+                                    return
+
                             async for chunk in resp.aiter_bytes():
                                 if first_chunk:
                                     stream_ctx.record_first_token()
@@ -261,22 +288,6 @@ def create_bedrock_httpx_router(
                                 "gen_ai.request.model": model_id,
                                 "gen_ai.response.chunks_processed": chunk_count,
                             },
-                        )
-                    except httpx.HTTPStatusError as e:
-                        error_msg = e.response.text[:200]
-                        logger.warning(
-                            f"Bedrock streaming error: {e.response.status_code} - {error_msg}",
-                            extra={
-                                "gen_ai.request.model": model_id,
-                                "error.type": "BedrockStreamError",
-                                "error.message": error_msg,
-                                "error.status_code": e.response.status_code,
-                            },
-                        )
-                        yield create_aws_error_json(
-                            error_code="BedrockError",
-                            error_message=error_msg,
-                            request_id="stream-bedrock-error",
                         )
                     except Exception as e:
                         logger.error(
@@ -367,7 +378,6 @@ def create_bedrock_httpx_router(
                     "gen_ai.request.content_type": "application/json",
                 },
             )
-
 
             body_bytes = orjson.dumps(body)
 
@@ -484,7 +494,6 @@ def create_bedrock_httpx_router(
                 },
             )
 
-
             body_bytes = orjson.dumps(body)
 
             async with metrics.track_stream_request("invoke-stream", model_id) as stream_ctx:
@@ -497,7 +506,43 @@ def create_bedrock_httpx_router(
                     chunk_count = 0
                     try:
                         async with stream_cm as resp:
-                            resp.raise_for_status()
+                            # Read error body inside async with — stream is
+                            # closed by __aexit__ and unreadable afterwards.
+                            if resp.status_code >= 400:
+                                try:
+                                    error_body_bytes = await resp.aread()
+                                    error_msg = error_body_bytes[:200].decode(
+                                        "utf-8", errors="replace"
+                                    )
+                                except Exception as read_err:
+                                    error_msg = (
+                                        f"<unable to read body: "
+                                        f"{type(read_err).__name__}: {read_err}>"
+                                    )
+                                    status_code = resp.status_code
+                                    logger.warning(
+                                        f"Bedrock invoke-stream error: {status_code} - {error_msg}",
+                                        extra={
+                                            "gen_ai.request.model": model_id,
+                                            "error.type": "BedrockStreamError",
+                                            "error.message": error_msg,
+                                            "error.status_code": status_code,
+                                        },
+                                    )
+                                    stream_ctx.record_failure(
+                                        httpx.HTTPStatusError(
+                                            f"Bedrock error {status_code}",
+                                            request=resp.request,
+                                            response=resp,
+                                        )
+                                    )
+                                    yield create_aws_error_json(
+                                        error_code="BedrockError",
+                                        error_message=error_msg,
+                                        request_id="invoke-stream-bedrock-error",
+                                    )
+                                    return
+
                             async for chunk in resp.aiter_bytes():
                                 if first_chunk:
                                     stream_ctx.record_first_token()
@@ -511,23 +556,6 @@ def create_bedrock_httpx_router(
                                 "gen_ai.request.model": model_id,
                                 "gen_ai.response.chunks_processed": chunk_count,
                             },
-                        )
-                    except httpx.HTTPStatusError as e:
-                        error_msg = e.response.text[:200]
-                        logger.warning(
-                            f"Bedrock invoke-stream error: {e.response.status_code} - {error_msg}",
-                            extra={
-                                "gen_ai.request.model": model_id,
-                                "error.type": "BedrockStreamError",
-                                "error.message": error_msg,
-                                "error.status_code": e.response.status_code,
-                            },
-                        )
-                        stream_ctx.record_failure(e)
-                        yield create_aws_error_json(
-                            error_code="BedrockError",
-                            error_message=error_msg,
-                            request_id="invoke-stream-bedrock-error",
                         )
                     except Exception as e:
                         logger.error(
@@ -640,7 +668,7 @@ def create_bedrock_httpx_router(
                 f"'{actual_guardrail_id}' version '{actual_guardrail_version}'"
             )
 
-            # Build body for Bedrock — exclude guardrail identifiers (they're in the URL)
+            # Build body for Bedrock exclude guardrail identifiers (they're in the URL)
             apply_body = {
                 k: v
                 for k, v in body.items()

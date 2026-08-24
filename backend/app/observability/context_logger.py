@@ -80,6 +80,12 @@ class ContextLogger:
         """
         extra = self._add_context(extra)
 
+        # ``makeRecord`` reserves positional arg 7 for ``exc_info`` and accepts
+        # ``stack_info`` as keyword-only. Pull both out of ``kwargs`` to avoid
+        # "got multiple values" TypeErrors when callers pass them.
+        exc_info = kwargs.pop("exc_info", None)
+        stack_info = kwargs.pop("stack_info", False)
+
         # Get the original caller's frame by going back 2 levels:
         # current -> _log_with_caller_info -> info/error/etc -> actual caller
         frame = inspect.currentframe().f_back.f_back
@@ -93,11 +99,14 @@ class ContextLogger:
             frame.f_lineno,
             msg,
             args,
-            None,
+            exc_info,
             frame.f_code.co_name,
             extra=extra,
             **kwargs,
         )
+        # Apply stack_info on the record (matches Logger._log behaviour).
+        if stack_info:
+            record.stack_info = stack_info
 
         self._logger.handle(record)
 

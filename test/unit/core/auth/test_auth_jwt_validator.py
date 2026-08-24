@@ -119,6 +119,7 @@ class TestJWTValidator:
     def test_validate_jwt_claims_success(self, mock_config):
         """Test successful JWT claims validation."""
         mock_config.allowed_scopes = ["bedrockproxygateway:invoke"]
+        mock_config.jwt_skip_scope_check = False
 
         current_time = time.time()
         claims = {
@@ -146,8 +147,9 @@ class TestJWTValidator:
             validate_jwt_claims(claims)
 
     @patch("core.auth.jwt_validator.config")
-    def test_validate_jwt_claims_missing_scope(self, _mock_config):
+    def test_validate_jwt_claims_missing_scope(self, mock_config):
         """Test claims validation with missing scope."""
+        mock_config.jwt_skip_scope_check = False
         claims = {"client_id": "test-client"}
 
         with pytest.raises(ValueError, match="Missing required claim: scope"):
@@ -157,6 +159,7 @@ class TestJWTValidator:
     def test_validate_jwt_claims_invalid_scope(self, mock_config):
         """Test claims validation with invalid scope."""
         mock_config.allowed_scopes = ["bedrockproxygateway:invoke"]
+        mock_config.jwt_skip_scope_check = False
 
         claims = {"client_id": "test-client", "scope": "invalid:scope"}
 
@@ -164,9 +167,59 @@ class TestJWTValidator:
             validate_jwt_claims(claims)
 
     @patch("core.auth.jwt_validator.config")
+    def test_validate_jwt_claims_skip_scope_check_missing_scope(self, mock_config):
+        """When JWT_SKIP_SCOPE_CHECK is enabled, tokens without a ``scope``
+        claim MUST authenticate (this is the local-dev escape hatch used by
+        Cognito ID tokens, which do not carry OAuth scopes).
+        """
+        mock_config.allowed_scopes = ["bedrockproxygateway:invoke"]
+        mock_config.jwt_skip_scope_check = True
+
+        current_time = time.time()
+        claims = {
+            # ID tokens have no ``client_id`` claim; the validator falls back
+            # to ``sub``.
+            "sub": "user-uuid-from-id-token",
+            "nbf": current_time - 100,
+            "exp": current_time + 3600,
+        }
+
+        result = validate_jwt_claims(claims)
+
+        assert result == {
+            "client_id": "user-uuid-from-id-token",
+            "scope": "",
+            "orgId": "user-uuid-from-id-token",
+        }
+
+    @patch("core.auth.jwt_validator.config")
+    def test_validate_jwt_claims_skip_scope_check_ignores_invalid_scope(self, mock_config):
+        """When JWT_SKIP_SCOPE_CHECK is enabled, an out-of-allowlist ``scope``
+        claim on the token is also ignored (the whole check is bypassed).
+        """
+        mock_config.allowed_scopes = ["bedrockproxygateway:invoke"]
+        mock_config.jwt_skip_scope_check = True
+
+        current_time = time.time()
+        claims = {
+            "client_id": "test-client",
+            "scope": "some:unrelated:scope",
+            "nbf": current_time - 100,
+            "exp": current_time + 3600,
+        }
+
+        # No raise even though the scope is not in the allow-list.
+        result = validate_jwt_claims(claims)
+        assert result["client_id"] == "test-client"
+        # Scope value is preserved verbatim so downstream code that reads it
+        # (e.g. scope_context) still gets a stable string.
+        assert result["scope"] == "some:unrelated:scope"
+
+    @patch("core.auth.jwt_validator.config")
     def test_validate_jwt_claims_invalid_time(self, mock_config):
         """Test claims validation with invalid time."""
         mock_config.allowed_scopes = ["bedrockproxygateway:invoke"]
+        mock_config.jwt_skip_scope_check = False
 
         current_time = time.time()
         claims = {
@@ -183,6 +236,7 @@ class TestJWTValidator:
     def test_validate_jwt_claims_fallback_org_id(self, mock_config):
         """Test claims validation with fallback org_id."""
         mock_config.allowed_scopes = ["bedrockproxygateway:invoke"]
+        mock_config.jwt_skip_scope_check = False
 
         current_time = time.time()
         claims = {
