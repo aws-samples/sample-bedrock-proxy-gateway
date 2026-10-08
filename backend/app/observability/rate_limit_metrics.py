@@ -36,6 +36,16 @@ tokens_consumed_total = meter.create_counter(
 )
 
 
+# Streaming reconciliation delta histogram
+stream_reconciliation_delta = meter.create_histogram(
+    name="rate_limit_stream_reconciliation_delta",
+    description=(
+        "Signed delta (aggregated - estimated) applied to Shared_TPM_Key after a streaming response"
+    ),
+    unit="tokens",
+)
+
+
 def record_rate_limit_request(client_id: str, model_id: str, account_id: str, result: str):
     """Record a rate limit request."""
     rate_limit_requests_total.add(
@@ -76,4 +86,18 @@ def record_tokens_consumed(client_id: str, model_id: str, tokens: int, api_type:
     """Record actual tokens consumed."""
     tokens_consumed_total.add(
         tokens, {"client_id": client_id, "model_id": model_id, "api_type": api_type}
+    )
+
+
+def record_stream_reconciliation_delta(
+    client_id: str, model_id: str, endpoint: str, delta: int
+) -> None:
+    """Record the signed reconciliation delta applied to Shared_TPM_Key after streaming."""
+    stream_reconciliation_delta.record(
+        delta,
+        {
+            "client_id": client_id,
+            "model_id": model_id,
+            "endpoint": endpoint,
+        },
     )

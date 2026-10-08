@@ -30,7 +30,7 @@ No resources.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br/>    app_id             = string<br/>    aws_region         = string<br/>    aws_account_id     = string<br/>    environment        = string<br/>    service_name       = string<br/>    log_retention_days = number<br/>  })</pre> | n/a | yes |
+| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br>    app_id             = string<br>    aws_region         = string<br>    aws_account_id     = string<br>    environment        = string<br>    service_name       = string<br>    log_retention_days = number<br>  })</pre> | n/a | yes |
 | <a name="input_common_tags"></a> [common\_tags](#input\_common\_tags) | Common tags applied to all resources | `map(string)` | n/a | yes |
 | <a name="input_ecs_service_desired_count"></a> [ecs\_service\_desired\_count](#input\_ecs\_service\_desired\_count) | Desired number of ECS tasks (from environment config) | `number` | n/a | yes |
 | <a name="input_ecs_task_cpu"></a> [ecs\_task\_cpu](#input\_ecs\_task\_cpu) | CPU units for ECS task (from environment config) | `number` | n/a | yes |

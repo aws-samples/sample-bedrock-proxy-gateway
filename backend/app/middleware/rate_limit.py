@@ -51,7 +51,6 @@ from core.rate_limit.engine import RateLimitEngine
 from core.rate_limit.limiter import RateLimiter
 from core.rate_limit.tokens import TokenCounter
 from fastapi import HTTPException, Request
-from fastapi.responses import StreamingResponse
 from observability.context_logger import ContextLogger
 from observability.context_vars import client_id_context
 from observability.rate_limit_metrics import (
@@ -69,6 +68,15 @@ logger = ContextLogger(logging.getLogger(__name__))
 
 # Pre-compiled regex for guardrail endpoint detection
 _GUARDRAIL_ENDPOINT_RE = re.compile(r"^/guardrail/[^/]+/version/[^/]+/apply$")
+
+
+def _detect_stream_endpoint(path: str) -> str | None:
+    """Return the streaming endpoint name for *path*, or None if not streaming."""
+    if path.endswith("/converse-stream"):
+        return "converse-stream"
+    if path.endswith("/invoke-with-response-stream"):
+        return "invoke-with-response-stream"
+    return None
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -327,6 +335,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 # Parse request body to estimate input token consumption
                 request_body = await get_parsed_body(request)
                 estimated_tokens = self.tokens.estimate(request_body, api_type)
+                request.state.estimated_tokens = estimated_tokens
 
                 # STEP 6: O(1) quota configuration lookup with 24h in-memory caching
                 # Retrieves RPM/TPM limits and available AWS accounts for this client-model
@@ -583,79 +592,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-    async def _update_tokens(self, request: Request, response):
-        """Update Redis TPM counters with actual token consumption from model response.
-
-        This function replaces estimated input tokens with actual tokens consumed
-        by the model, ensuring accurate TPM tracking for cost control.
-
-        TOKEN TRACKING FLOW:
-        1. Initial request: Estimate input tokens for rate limit check
-        2. Model processing: Actual tokens consumed (input + output)
-        3. Response processing: Update Redis with actual token count
-
-        WHY THIS MATTERS:
-        - Token estimation is approximate (based on character count)
-        - Actual tokens depend on model tokenization and response length
-        - Accurate tracking prevents quota abuse and ensures fair billing
-
-        REDIS OPERATIONS:
-        - Updates shared TPM counter: "client:model:tpm"
-        - Only updates if TPM is limited (not unlimited)
-        - Uses atomic operations to prevent race conditions
-
-        SUPPORTED RESPONSE TYPES:
-        - JSON responses: Parse usage.total_tokens from response body
-        - Todo: Streaming responses: Skip (tokens tracked differently)
-        - Error responses: Skip (no tokens consumed)
-
-        Args:
-        ----
-            request: FastAPI Request with rate_ctx stored in state
-            response: FastAPI Response with token usage in body
-        """
+    async def _update_tokens(self, request: Request, response) -> None:
+        """Route post-response token reconciliation to stream or non-stream handler."""
         try:
-            # STEP 1: Skip token updates for streaming or empty responses
-            # Streaming responses handle token tracking differently
-            # Empty responses indicate errors or non-model endpoints
-            if isinstance(response, StreamingResponse) or not (
-                hasattr(response, "body") and response.body
-            ):
+            endpoint = _detect_stream_endpoint(request.url.path)
+            if endpoint is not None:
+                await self._reconcile_stream(request, response)
                 return
-
-            # STEP 2: Extract rate limiting context and parse response
-            # Context was stored during initial rate limit check
-            client_id, model_id, account_id, tpm_limit, api_type = request.state.rate_ctx
-            response_data = json.loads(response.body.decode("utf-8"))
-
-            # STEP 3: Extract aggregated tokens using model-specific calculation
-            actual_tokens = self.tokens.extract(response_data, api_type, model_id)
-
-            # STEP 4: Update shared TPM counter with actual tokens
-            # TPM limits are shared across all AWS accounts for this client-model
-            # Only update Redis if TPM is limited (not unlimited)
-            if tpm_limit != RATELIMIT_UNLIMITED:
-                shared_tpm_key = f"{{{client_id}:{model_id}}}:client:tpm"
-                await self.rate_limiter.limiter.check_and_consume(
-                    shared_tpm_key, tpm_limit, actual_tokens
-                )
-
-            # STEP 5: Record token consumption metrics for monitoring
-            record_tokens_consumed(client_id, model_id, actual_tokens, api_type)
-
-            logger.debug(
-                "Token count updated",
-                extra={
-                    "event.name": "token_update",
-                    "gen_ai.request.model": model_id,
-                    "cloud.account.id": account_id,
-                    "gen_ai.usage.output_tokens": actual_tokens,
-                    "gen_ai.operation.name": api_type,
-                },
-            )
+            await self._reconcile_non_stream(request, response)
         except Exception as e:
-            # GRACEFUL FALLBACK: Log Redis failures but don't block requests
-            # Token updates are important for accuracy but not critical for functionality
             if "redis" in str(e).lower():
                 record_redis_failure("token_update", type(e).__name__)
                 logger.error(
@@ -666,3 +611,129 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                         "error.message": str(e),
                     },
                 )
+
+    async def _reconcile_stream(self, request: Request, response) -> None:
+        """Install a StreamTokenReconciler on the response body iterator.
+
+        Errors are logged without affecting the client stream.
+        """
+        try:
+            from core.rate_limit.stream_reconciler import (
+                ReconciliationContext,
+                StreamTokenReconciler,
+            )
+
+            rate_ctx = getattr(request.state, "rate_ctx", None)
+            if rate_ctx is None:
+                return
+
+            estimated_tokens = getattr(request.state, "estimated_tokens", 0)
+            client_id, model_id, account_id, tpm_limit, api_type = rate_ctx
+            endpoint = _detect_stream_endpoint(request.url.path)
+
+            ctx = ReconciliationContext(
+                client_id=client_id,
+                model_id=model_id,
+                account_id=account_id,
+                tpm_limit=tpm_limit,
+                api_type=api_type,
+                endpoint=endpoint or "",
+                estimated_tokens=estimated_tokens,
+                rate_ctx_present=True,
+            )
+
+            reconciler = StreamTokenReconciler(
+                upstream=response.body_iterator,
+                ctx=ctx,
+                tokens=self.tokens,
+                limiter=self.rate_limiter.limiter,
+            )
+            response.body_iterator = reconciler.__aiter__()
+        except Exception as e:
+            logger.error(
+                "Failed to install stream reconciler",
+                extra={
+                    "event.name": "redis_failure_stream_reconciliation",
+                    "error.message": str(e),
+                },
+            )
+
+    async def _reconcile_non_stream(self, request: Request, response) -> None:
+        """Drain body iterator, parse JSON, and apply signed delta to shared TPM key."""
+        rate_ctx = getattr(request.state, "rate_ctx", None)
+        if rate_ctx is None:
+            return
+
+        # STEP 1: Drain body_iterator into a buffer.
+        body_iterator = getattr(response, "body_iterator", None)
+        if body_iterator is None:
+            body_bytes = getattr(response, "body", b"") or b""
+        else:
+            chunks: list[bytes] = []
+            async for chunk in body_iterator:
+                if isinstance(chunk, (bytes, bytearray, memoryview)):
+                    chunks.append(bytes(chunk))
+                else:
+                    chunks.append(str(chunk).encode("utf-8"))
+            body_bytes = b"".join(chunks)
+
+        # STEP 2: Replay the buffered bytes so Starlette can still serialize.
+        async def _replay_body():
+            yield body_bytes
+
+        response.body_iterator = _replay_body()
+
+        if not body_bytes:
+            return
+        try:
+            response_data = json.loads(body_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            logger.debug(
+                "Non-streaming reconciliation skipped: body is not JSON",
+                extra={
+                    "event.name": "rate_limit_reconciled_skipped",
+                    "reason": "non_json_body",
+                    "gen_ai.request.model": rate_ctx[1],
+                    "client.id": rate_ctx[0],
+                },
+            )
+            return
+
+        client_id, model_id, account_id, tpm_limit, api_type = rate_ctx
+
+        # STEP 3: Compute the signed delta.
+        aggregated_tokens = self.tokens.extract(response_data, api_type, model_id)
+        estimated_tokens = getattr(request.state, "estimated_tokens", 0)
+        delta = aggregated_tokens - estimated_tokens
+
+        # STEP 4: Apply the delta to Shared_TPM_Key.
+        if tpm_limit != RATELIMIT_UNLIMITED and delta != 0:
+            shared_tpm_key = f"{{{client_id}:{model_id}}}:client:tpm"
+            try:
+                await self.rate_limiter.limiter.reconcile(shared_tpm_key, delta)
+            except Exception as e:
+                record_redis_failure("token_update", type(e).__name__)
+                logger.error(
+                    "Redis failure during non-streaming reconciliation",
+                    extra={
+                        "event.name": "redis_failure_token_update",
+                        "gen_ai.request.model": model_id,
+                        "error.message": f"{type(e).__name__}: {e}",
+                    },
+                )
+                return
+
+        logger.info(
+            "Non-streaming reconciliation applied",
+            extra={
+                "event.name": "rate_limit_reconciled",
+                "gen_ai.request.model": model_id,
+                "client.id": client_id,
+                "cloud.account.id": account_id,
+                "rate_limit.estimated_tokens": estimated_tokens,
+                "rate_limit.aggregated_tokens": aggregated_tokens,
+                "rate_limit.reconciliation_delta": delta,
+                "gen_ai.operation.name": api_type,
+            },
+        )
+        record_tokens_consumed(client_id, model_id, aggregated_tokens, api_type)

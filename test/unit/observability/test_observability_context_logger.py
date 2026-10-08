@@ -218,9 +218,44 @@ class TestContextLogger:
         extra = {"custom": "value"}
         self.context_logger.info("Test %s", "message", extra=extra, stack_info=True)
 
-        # Verify makeRecord was called with correct parameters
+        # Verify makeRecord was called with correct parameters. ``stack_info``
+        # and ``exc_info`` are stdlib-reserved slots that ``makeRecord`` does
+        # not accept as kwargs, so the wrapper strips them from ``**kwargs``
+        # before calling ``makeRecord`` and applies ``stack_info`` to the
+        # returned record (matching Python's ``Logger._log`` behaviour).
         call_args = self.mock_logger.makeRecord.call_args
         assert call_args[0][4] == "Test %s"  # msg
         assert call_args[0][5] == ("message",)  # args
+        assert call_args[0][6] is None  # exc_info positional (not duplicated in kwargs)
         assert call_args[1]["extra"]["custom"] == "value"
-        assert call_args[1]["stack_info"] is True
+        assert "stack_info" not in call_args[1]
+        # The record returned by the mocked makeRecord should have had
+        # ``stack_info`` assigned to it by the wrapper.
+        assert self.mock_logger.makeRecord.return_value.stack_info is True
+
+    @patch("observability.context_logger.inspect.currentframe")
+    def test_log_error_with_exc_info_true(self, mock_frame):
+        """``logger.error(msg, exc_info=True)`` must forward ``exc_info`` as
+        the positional slot ``makeRecord`` expects, not duplicate it as a
+        kwarg. Regression test for
+        ``TypeError: got multiple values for argument 'exc_info'``.
+        """
+        mock_current_frame = Mock()
+        mock_caller_frame = Mock()
+        mock_caller_frame.f_code.co_filename = "/test/file.py"
+        mock_caller_frame.f_code.co_name = "test_function"
+        mock_caller_frame.f_lineno = 42
+        mock_current_frame.f_back.f_back = mock_caller_frame
+        mock_frame.return_value = mock_current_frame
+
+        self.mock_logger.isEnabledFor.return_value = True
+        self.mock_logger.makeRecord.return_value = Mock()
+        self.mock_logger.handle = Mock()
+
+        # Must NOT raise ``TypeError: got multiple values for argument 'exc_info'``.
+        self.context_logger.error("Boom", exc_info=True)
+
+        call_args = self.mock_logger.makeRecord.call_args
+        # ``exc_info`` must land in the positional slot (index 6), not kwargs.
+        assert call_args[0][6] is True
+        assert "exc_info" not in call_args[1]

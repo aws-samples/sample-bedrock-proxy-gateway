@@ -64,7 +64,7 @@ No modules.
 | <a name="input_bedrock_logging_policy_name"></a> [bedrock\_logging\_policy\_name](#input\_bedrock\_logging\_policy\_name) | Name of the Bedrock logging IAM policy | `string` | n/a | yes |
 | <a name="input_bedrock_logging_role_name"></a> [bedrock\_logging\_role\_name](#input\_bedrock\_logging\_role\_name) | Name of the Bedrock logging IAM role | `string` | n/a | yes |
 | <a name="input_central_account_id"></a> [central\_account\_id](#input\_central\_account\_id) | Central account ID where logs are aggregated | `string` | n/a | yes |
-| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br/>    app_id             = string<br/>    aws_region         = string<br/>    aws_account_id     = string<br/>    environment        = string<br/>    service_name       = string<br/>    log_retention_days = number<br/>  })</pre> | n/a | yes |
+| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br>    app_id             = string<br>    aws_region         = string<br>    aws_account_id     = string<br>    environment        = string<br>    service_name       = string<br>    log_retention_days = number<br>  })</pre> | n/a | yes |
 | <a name="input_log_group_name"></a> [log\_group\_name](#input\_log\_group\_name) | CloudWatch log group name for Bedrock | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags applied to all resources | `map(string)` | n/a | yes |
 

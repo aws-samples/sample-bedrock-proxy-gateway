@@ -42,7 +42,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br/>    app_id             = string<br/>    aws_region         = string<br/>    aws_account_id     = string<br/>    environment        = string<br/>    service_name       = string<br/>    log_retention_days = number<br/>  })</pre> | n/a | yes |
+| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br>    app_id             = string<br>    aws_region         = string<br>    aws_account_id     = string<br>    environment        = string<br>    service_name       = string<br>    log_retention_days = number<br>  })</pre> | n/a | yes |
 | <a name="input_common_tags"></a> [common\_tags](#input\_common\_tags) | Common tags applied to all resources | `map(string)` | n/a | yes |
 
 ## Outputs

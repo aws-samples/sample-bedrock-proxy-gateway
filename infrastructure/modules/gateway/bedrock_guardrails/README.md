@@ -25,7 +25,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br/>    app_id             = string<br/>    aws_region         = string<br/>    aws_account_id     = string<br/>    environment        = string<br/>    service_name       = string<br/>    log_retention_days = number<br/>  })</pre> | n/a | yes |
+| <a name="input_common"></a> [common](#input\_common) | Common variables shared across all modules | <pre>object({<br>    app_id             = string<br>    aws_region         = string<br>    aws_account_id     = string<br>    environment        = string<br>    service_name       = string<br>    log_retention_days = number<br>  })</pre> | n/a | yes |
 | <a name="input_kms_key_arn"></a> [kms\_key\_arn](#input\_kms\_key\_arn) | ARN of the KMS key to use for SSM parameter encryption | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Common tags applied to all resources | `map(string)` | n/a | yes |
 

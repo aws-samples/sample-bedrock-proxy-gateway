@@ -196,3 +196,4 @@ bedrock_test_report_*.md
 
 temp.md
 scripts/fix_ssl.sh
+temp/

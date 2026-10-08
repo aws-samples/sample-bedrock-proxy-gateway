@@ -106,13 +106,25 @@ def validate_jwt_claims(claims: dict) -> dict:
     if not client_id:
         raise ValueError("Missing required claims: client_id, sub, or azp")
 
-    if not scope:
-        raise ValueError("Missing required claim: scope")
+    # When JWT_SKIP_SCOPE_CHECK is enabled, bypass scope validation entirely.
+    # Intended only for local dev with ID tokens that lack a scope claim.
+    if config.jwt_skip_scope_check:
+        logger.warning(
+            "JWT scope check bypassed via JWT_SKIP_SCOPE_CHECK=true this "
+            "MUST NOT be set in dev / test / prod. token_use=%s client_id=%s",
+            claims.get("token_use"),
+            client_id,
+        )
+        scope = scope or ""
+    else:
+        if not scope:
+            raise ValueError("Missing required claim: scope")
 
-    # Validate scope against allowed scopes (check if any allowed scope is present)
-    user_scopes = scope.split() if isinstance(scope, str) else [scope]
-    if not any(allowed_scope in user_scopes for allowed_scope in config.allowed_scopes):
-        raise ValueError(f"Invalid scope: {scope}. Allowed: {config.allowed_scopes}")
+        # Validate scope against allowed scopes (check if any allowed scope is
+        # present).
+        user_scopes = scope.split() if isinstance(scope, str) else [scope]
+        if not any(allowed_scope in user_scopes for allowed_scope in config.allowed_scopes):
+            raise ValueError(f"Invalid scope: {scope}. Allowed: {config.allowed_scopes}")
 
     # Additional time validation beyond JWT library checks
     current_time = time.time()

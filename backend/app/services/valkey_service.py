@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 from config import config
 from glide import (
+    GlideClient,
+    GlideClientConfiguration,
     GlideClusterClient,
     GlideClusterClientConfiguration,
     IamAuthConfig,
@@ -15,15 +17,15 @@ from glide import (
     ServiceType,
 )
 
-_client = None
+_client: GlideClient | GlideClusterClient | None = None
 
 
-async def create_valkey_client() -> GlideClusterClient:
+async def create_valkey_client() -> GlideClient | GlideClusterClient:
     """Create Valkey client with IAM authentication support.
 
     Returns
     -------
-        Configured GlideClusterClient with IAM auth or password auth
+        Configured GlideClusterClient or GlideClient (standalone, local dev)
     """
     global _client
 
@@ -62,15 +64,25 @@ async def create_valkey_client() -> GlideClusterClient:
             password=parsed.password,
         )
 
-    # Create client configuration
-    client_config = GlideClusterClientConfiguration(
-        addresses=addresses,
-        use_tls=config.valkey_ssl,
-        credentials=credentials,
-        request_timeout=5000,  # 5 seconds
-    )
+    if config.valkey_cluster_mode:
+        # ElastiCache Valkey/Redis in cluster mode (production default).
+        cluster_config = GlideClusterClientConfiguration(
+            addresses=addresses,
+            use_tls=config.valkey_ssl,
+            credentials=credentials,
+            request_timeout=5000,  # 5 seconds
+        )
+        _client = await GlideClusterClient.create(cluster_config)
+    else:
+        # Standalone client for local development (single-node container).
+        standalone_config = GlideClientConfiguration(
+            addresses=addresses,
+            use_tls=config.valkey_ssl,
+            credentials=credentials,
+            request_timeout=5000,  # 5 seconds
+        )
+        _client = await GlideClient.create(standalone_config)
 
-    _client = await GlideClusterClient.create(client_config)
     return _client
 
 

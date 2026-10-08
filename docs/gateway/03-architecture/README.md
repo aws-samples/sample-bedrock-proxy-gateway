@@ -84,3 +84,6 @@ graph TB
 - [Networking](03-networking.md) - VPC and network architecture
 - [Operations](04-operations.md) - Monitoring, scaling, and maintenance
 - [Development](05-development.md) - Local development and contributing
+- [Rate limiting for synchronous responses](06-rate-limit-synchronous-responses.md) - Post-response TPM reconciliation for `/converse` and `/invoke`
+- [Rate limiting for streaming responses](07-rate-limit-stream-responses.md) - Post-stream TPM reconciliation for `/converse-stream` and `/invoke-with-response-stream`
+- [Rate Limit Reconciliation for Streaming Responses](07-rate-limit-stream-responses.md) - How the gateway keeps TPM accurate for streaming endpoints
